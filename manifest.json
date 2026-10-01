@@ -1,0 +1,10 @@
+{
+  "name": "LeagueONE",
+  "short_name": "LeagueONE",
+  "description": "ラグビーリーグの試合やシーズンを楽しめるシミュレーションゲームです。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
+}
