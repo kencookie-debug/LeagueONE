@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+      <title>リーグワン ラグビー実況AI｜12チーム・プレーオフ版</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+body {font-family: 'Segoe UI', system-ui, sans-serif; margin:0; background:#f8f9fa; color:#222; text-align:center;}
+
+/* チーム選択UI用スタイル */
+#setupUI {display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding: 20px;}
+.setup-box {background:#ffffff; padding:30px; border-radius:18px; box-shadow:0 8px 25px rgba(0,0,0,0.15); max-width:400px; width:100%;}
+.setup-box h2 {margin-top:0; color:#002244;}
+.setup-label {font-weight:bold; display:block; text-align:left; margin-bottom:8px; color:#444;}
+.setup-select {width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; font-size:16px;}
+.start-btn {width:100%; padding:15px; background:#1976d2; color:#fff; font-size:18px; font-weight:bold; border:none; border-radius:10px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.2); transition:0.2s;}
+.start-btn:hover {background:#1565c0;}
+
+/* ゲームUI用スタイル */
+#gameUI {display:none; padding-top:75px;}
+
+#topBar {position:fixed; top:0; left:0; width:100%; background:#002244; color:#fff; padding:12px 15px; display:flex; justify-content:space-between; align-items:center; font-weight:bold; z-index:999; box-shadow:0 4px 10px rgba(0,0,0,0.2); box-sizing: border-box;}
+#board {background:#ffffff; color:#111; margin:15px auto; padding:18px; border-radius:18px; max-width:720px; box-shadow:0 8px 25px rgba(0,0,0,0.15);}
+.row {display:grid; grid-template-columns:1fr 110px 1fr; align-items:center; padding:10px 0; border-bottom:1px solid #eee;}
+.center {font-weight:bold; font-size:1.15em;}
+
+#timeline {background:#ffffff; height:480px; overflow-y:auto; border:1px solid #ddd; padding:15px; margin:15px auto; border-radius:14px; font-size:14.5px; line-height:1.6; text-align:left; box-shadow:0 4px 15px rgba(0,0,0,0.08); scroll-behavior: smooth; max-width:720px;}
+.rowLog {display: grid; grid-template-columns: 1.15fr 92px 1.15fr; margin: 7px 0; padding: 7px 8px; border-radius: 9px; background: #f8f9fa; border: 1px solid #eee; align-items: center;}
+.left {text-align: left; padding-right: 6px;} .right {text-align: right; padding-left: 6px;}
+.centerBox {text-align: center; font-size: 13px; color: #333; background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 4px 3px; line-height: 1.3;}
+
+.rarity {font-size: 10px; padding: 1px 4px; border-radius: 4px; margin-right: 4px; font-weight: bold; color: #fff;}
+.star5 {background: #ffd700; color: #000;} .star4 {background: #aaa;} .star3 {background: #cd7f32;} .star2 {background: #9e9e9e; color: #fff;}
+.sp-badge {color: #ff3300; font-style: italic; font-weight: 900; margin-right: 2px;}
+.title-tag {font-size: 10px; background: #e3f2fd; color: #1976d2; border: 1px solid #1976d2; padding: 0 3px; border-radius: 3px; margin-left: 3px;}
+
+.try {color:#d32f2f; font-weight:bold; background:#fff5f5 !important; border: 1px solid #ffcdd2 !important;}
+.tmo {color:#0d47a1; font-weight:bold; background:#e3f2fd !important; border: 1px dashed #1976d2 !important;}
+.conv {color:#f57c00; font-weight:bold;} .pen {color:#8e24aa; font-weight:bold;}
+.start {color:#1976d2;} .end {color:#f9a825; font-weight:bold;}
+.kick {color:#2e7d32; font-weight:bold;}
+.yellow {color:#b28900; font-weight:bold; background:#fffde7 !important; border: 1px solid #fbc02d !important;}
+.special {color:#c62828; font-weight:bold; background:#fff8e1 !important; border: 1px solid #ffe082 !important;} /* 特殊プレー用 */
+
+button {padding:12px 20px; margin:6px; border:none; border-radius:10px; font-size:16px; cursor:pointer;}
+.control-btn {background:#0033a0; color:white; font-weight:bold;}
+.penalty-btn {background:#f57c00; color:white; font-weight:bold; transition: 0.2s;}
+.penalty-btn:hover {opacity: 0.8;}
+.disabled-btn {background:#ccc !important; cursor:not-allowed !important; color:#666 !important;}
+
+.popup-ui {display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; color:#111; padding:25px; border-radius:18px; box-shadow:0 15px 40px rgba(0,0,0,0.3); z-index:9999; min-width:320px; width: 90%; max-width: 420px;}
+
+.minimap-wrapper { position: relative; margin: 15px 0 20px 0; }
+.minimap-container { width: 100%; aspect-ratio: 10 / 6; background: #2e7d32; border: 3px solid #fff; border-radius: 8px; position: relative; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.1); }
+.pitch-line { position: absolute; top: 0; bottom: 0; border-left: 1px solid rgba(255,255,255,0.6); }
+.pitch-line.goal-l { left: 0; border-left: 4px solid #fff; }
+.pitch-line.goal-r { right: 0; border-left: 4px solid #fff; }
+.pitch-line.line-22l { left: 22%; }
+.pitch-line.line-10l { left: 40%; border-left: 1px dashed rgba(255,255,255,0.4); }
+.pitch-line.line-50 { left: 50%; border-left: 2px solid #fff; }
+.pitch-line.line-10r { left: 60%; border-left: 1px dashed rgba(255,255,255,0.4); }
+.pitch-line.line-22r { left: 78%; }
+
+.minimap-marker {
+position: absolute; width: 18px; height: 18px; background: #ffeb3b; border: 3px solid #d32f2f; border-radius: 50%; transform: translate(-50%, -50%);
+box-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 5px rgba(0,0,0,0.5); transition: left 0.4s ease, top 0.4s ease; z-index: 10;
+}
+.minimap-labels { display: flex; justify-content: space-between; font-size: 12px; color: #444; margin-top: 8px; font-weight: bold; }
+
+#stats {margin:20px auto; max-width:720px; background:#ffffff; padding:20px; border-radius:16px; display:none; box-shadow:0 8px 25px rgba(0,0,0,0.1);}
+</style>
+      </head>
+      <body>
+        <div id="setupUI">
+          <div class="setup-box">
+            <h2>🏉 試合設定</h2>
+            <label class="setup-label">🟢 自チーム (Play Team)</label>
+            <select id="myTeamSelect" class="setup-select">
+              <option value="wildknights">埼玉パナソニックワイルドナイツ</option>
+              <option value="spears">クボタスピアーズ</option>
+              <option value="sungoliath">東京サントリーサンゴリアス</option>
+              <option value="steelers">コベルコ神戸スティーラーズ</option>
+              <option value="drocks">浦安D-Rocks</option>
+              <option value="shizuoka">静岡ブルーレヴズ</option>
+              <option value="bravelupus">東芝ブレイブルーパス東京</option>
+              <option value="tochigi">栃木ホンダヒート</option>
+              <option value="verblitz">トヨタヴェルブリッツ</option>
+              <option value="dynaboars">三菱重工相模原ダイナボアーズ</option>
+              <option value="eagles">横浜キヤノンイーグルス</option>
+              <option value="blackrams">リコーブラックラムズ東京</option>
+            </select>
+            <label class="setup-label">🔴 相手チーム (Opponent Team)</label>
+            <select id="opTeamSelect" class="setup-select">
+              <option value="wildknights">埼玉パナソニックワイルドナイツ</option>
+              <option value="spears" selected>クボタスピアーズ</option>
+              <option value="sungoliath">東京サントリーサンゴリアス</option>
+              <option value="steelers">コベルコ神戸スティーラーズ</option>
+              <option value="drocks">浦安D-Rocks</option>
+              <option value="shizuoka">静岡ブルーレヴズ</option>
+              <option value="bravelupus">東芝ブレイブルーパス東京</option>
+              <option value="tochigi">栃木ホンダヒート</option>
+              <option value="verblitz">トヨタヴェルブリッツ</option>
+              <option value="dynaboars">三菱重工相模原ダイナボアーズ</option>
+              <option value="eagles">横浜キヤノンイーグルス</option>
+              <option value="blackrams">リコーブラックラムズ東京</option>
+            </select>
+            <button id="startMatchBtn" class="start-btn">試合開始</button>
+          </div>
+        </div>
+        <div id="gameUI">
+          <div id="topBar">
+            <div id="matchTitleDisplay">ワイルドナイツ vs スピアーズ</div>
+            <div id="clock" style="font-size:1.5em; font-family: monospace;">00:00</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <select id="speedSelect" style="padding:6px;border-radius:6px; color:#222;">
+                <option value="1800">遅め</option>
+                <option value="1300" selected>普通</option>
+                <option value="700">速い</option>
+              </select>
+              <button id="pauseBtn" style="padding: 6px 10px; margin: 0; font-size: 13px; border-radius: 6px; background: #fbc02d; color: #111; font-weight: bold; cursor: pointer; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">⏸️ 停止</button>
+            </div>
+          </div>
+          <div id="board">
+            <div class="row">
+              <div id="teamANameDisplay">Team A</div>
+              <div class="center">VS</div>
+              <div id="teamBNameDisplay">Team B</div>
+            </div>
+            <div class="row">
+              <div id="sA" style="font-size:2.8em;font-weight:bold;color:#fff; background:#0033a0; border-radius:8px;">0</div>
+              <div class="center">SCORE</div>
+              <div id="sB" style="font-size:2.8em;font-weight:bold;color:#fff; background:#ff6600; border-radius:8px;">0</div>
+            </div>
+            <div class="row">
+              <div id="tA">0</div>
+              <div class="center">T</div>
+              <div id="tB">0</div>
+            </div>
+            <div class="row">
+              <div id="gA">0</div>
+              <div class="centerBox" style="font-size:12px; font-weight:normal;">G</div>
+              <div id="gB">0</div>
+            </div>
+            <div class="row">
+              <div id="pgA">0</div>
+              <div class="centerBox" style="font-size:12px; font-weight:normal;">PG</div>
+              <div id="pgB">0</div>
+            </div>
+          </div>
+          <div id="kickoffUI" class="popup-ui">
+            <h3 style="margin:5px">🏉 キックオフ</h3>
+            <p style="font-weight:bold; color:#0033a0; margin:10px 0;">キックの種類を選択してください</p>
+            <div style="display:flex; flex-direction:column;">
+              <button class="penalty-btn" id="kickLongBtn" style="background:#0277bd;">🥾 奥へ蹴り込む（ロングキック）</button>
+              <button class="penalty-btn" id="kickShortBtn" style="background:#f57c00;">🎯 浅く蹴る（コンテストキック）</button>
+            </div>
+          </div>
+          <div id="penaltyUI" class="popup-ui">
+            <h3 id="penPos" style="margin:5px; font-size:18px;">
+            </h3>
+            <div class="minimap-wrapper">
+              <div class="minimap-container">
+                <div class="pitch-line goal-l">
+                </div>
+                <div class="pitch-line line-22l">
+                </div>
+                <div class="pitch-line line-10l">
+                </div>
+                <div class="pitch-line line-50">
+                </div>
+                <div class="pitch-line line-10r">
+                </div>
+                <div class="pitch-line line-22r">
+                </div>
+                <div class="pitch-line goal-r">
+                </div>
+                <div class="minimap-marker" id="penMarker">
+                </div>
+              </div>
+              <div class="minimap-labels">
+                <span>自陣(0m)</span>
+                <span>50m</span>
+                <span>敵陣(100m)</span>
+              </div>
+            </div>
+            <h4 id="penType" style="color:#c33;margin:8px">
+            </h4>
+            <p id="kickChance" style="font-weight:bold; color:#d32f2f; margin:10px 0; background:#fff3e0; padding:8px; border-radius:5px;">
+            </p>
+            <div id="penaltyOptions" style="display:flex; flex-direction:column;">
+              <button class="penalty-btn" id="pgBtn">🎯 PGを狙う</button>
+              <button class="penalty-btn" id="touchBtn">🦶 タッチキック</button>
+              <button class="penalty-btn" id="scrumBtn">🤝 スクラム選択</button>
+              <button class="penalty-btn" id="tapTouchBtn" style="background:#2e7d32; display:none;">🛑 タップ → タッチ</button>
+            </div>
+          </div>
+          <div id="lineoutUI" class="popup-ui">
+            <h3 style="margin:5px">📍 ラインアウト</h3>
+            <p id="lineoutPos" style="font-size:15px; font-weight:bold; color:#333; margin:5px 0;">
+            </p>
+            <div class="minimap-wrapper">
+              <div class="minimap-container">
+                <div class="pitch-line goal-l">
+                </div>
+                <div class="pitch-line line-22l">
+                </div>
+                <div class="pitch-line line-10l">
+                </div>
+                <div class="pitch-line line-50">
+                </div>
+                <div class="pitch-line line-10r">
+                </div>
+                <div class="pitch-line line-22r">
+                </div>
+                <div class="pitch-line goal-r">
+                </div>
+                <div class="minimap-marker" id="lineoutMarker">
+                </div>
+              </div>
+              <div class="minimap-labels">
+                <span>自陣</span>
+                <span>50m</span>
+                <span>敵陣</span>
+              </div>
+            </div>
+            <p style="font-weight:bold; color:#0033a0; margin:10px 0;">戦術を選択してください</p>
+            <div style="display:flex; flex-direction:column;">
+              <button class="penalty-btn" id="loMaulBtn" style="background:#2e7d32;">🚜 モールを組む</button>
+              <button class="penalty-btn" id="loBkBtn" style="background:#0277bd;">⚡ バックスへ展開</button>
+            </div>
+          </div>
+          <div id="scrumUI" class="popup-ui">
+            <h3 style="margin:5px">🤝 スクラム</h3>
+            <p id="scrumPos" style="font-size:15px; font-weight:bold; color:#333; margin:5px 0;">
+            </p>
+            <div class="minimap-wrapper">
+              <div class="minimap-container">
+                <div class="pitch-line goal-l">
+                </div>
+                <div class="pitch-line line-22l">
+                </div>
+                <div class="pitch-line line-10l">
+                </div>
+                <div class="pitch-line line-50">
+                </div>
+                <div class="pitch-line line-10r">
+                </div>
+                <div class="pitch-line line-22r">
+                </div>
+                <div class="pitch-line goal-r">
+                </div>
+                <div class="minimap-marker" id="scrumMarker">
+                </div>
+              </div>
+              <div class="minimap-labels">
+                <span>自陣</span>
+                <span>50m</span>
+                <span>敵陣</span>
+              </div>
+            </div>
+            <p style="font-weight:bold; color:#d32f2f; margin:10px 0;">戦術を選択してください</p>
+            <div style="display:flex; flex-direction:column;">
+              <button class="penalty-btn" id="scrumPushBtn" style="background:#c62828;">💪 スクラムプッシュ</button>
+              <button class="penalty-btn" id="scrumBkBtn" style="background:#0277bd;">⚡ バックス展開</button>
+              <button class="penalty-btn" id="scrumEightBtn" style="background:#f57c00;">🏃 No.8 サイドアタック</button>
+            </div>
+          </div>
+          <div id="timeline">
+          </div>
+          <div id="stats">
+            <h2>🏁 試合終了</h2>
+            <div id="finalScore" style="font-size:2em;margin:15px">
+            </div>
+            <div id="pomDisplay" style="font-size:1.4em; margin:20px; padding:15px; background:#fffde7; border-radius:12px; border:2px solid #fbc02d; display:none;">
+            </div>
+            <button id="restartBtn" class="control-btn">チーム選択へ戻る</button>
+          </div>
+        </div>
+        <script>
+let intervalId = null;
+
+// fieldY を追加 (0〜100、50が中央。0と100がタッチライン)
+const state = {
+minute: 0, second: 0, scoreA: 0, scoreB: 0,
+tryA: 0, tryB: 0, convA: 0, convB: 0, pgA: 0, pgB: 0,
+fieldPos: 50, fieldY: 50, possession: "A", // fieldY追加
+penalty: false, penaltyTeam: null,
+kickoff: true, gameOver: false, halfEnded: false, secondHalfStarted: false,
+isTimeOver: false, scoringSequence: false, isSetPieceChoice: false, currentJumper: null,
+sinBin: [], pStats: {},
+isLineout: false, wasLineout: false, isPenaltyTouchLineout: false,
+collapseWarnings: { A: 0, B: 0 },
+consecutiveScrumCollapse: { A: 0, B: 0 },
+phases: 0, isPaused: false, wasTurnoverOrKickReturn: false
+};
+
+// チームテンプレートの定義（変更なし）
+const teamTemplates = {
+"wildknights": {
+name: "埼玉パナソニックワイルドナイツ", shortName: "ワイルドナイツ", color: "#0033a0",
+roster: [
+{name:"稲垣",star:5,isSP:true,power:90,defense:80,speed:65,isFW:true, title:"", pos:"PR"},
+{name:"坂手",star:5,isSP:true,power:84,defense:83,speed:68,isFW:true, title:"", pos:"HO"},
+{name:"リサラフィナウ",star:5,isSP:true,power:90,defense:78,speed:64,isFW:true, title:"", pos:"PR"},
+{name:"リアムミッチェル",star:3,isSP:true,power:86,defense:85,speed:65,isFW:true, title:"タックラー", pos:"LO"},
+{name:"ハアンガナ",star:4,isSP:true,power:90,defense:82,speed:66,isFW:true, title:"", pos:"LO"},
+{name:"ガンター",star:5,isSP:true,power:92,defense:94,speed:75,isFW:true, title:"", pos:"FL"},
+{name:"ボーシェー",star:4,isSP:true,power:84,defense:92,speed:76,isFW:true, title:"", pos:"FL"},
+{name:"コーネルセン",star:5,isSP:true,power:85,defense:90,speed:76,isFW:true, title:"", pos:"No8"},
+{name:"小山",star:3,isSP:true,power:70,defense:74,speed:84,kick:76,isFW:false, title:"", pos:"SH"},
+{name:"山沢",star:5,isSP:true,power:70,defense:85,speed:88,kick:98,isFW:false, title:"プレースキッカー", pos:"SO"},
+{name:"モーリスマークス",star:5,isSP:true,power:70,defense:84,speed:96,kick:65,isFW:false, title:"スピードスター", pos:"WTB"},
+{name:"デアレンデ",star:3,isSP:false,power:88,defense:85,speed:82,kick:65,isFW:false, title:"", pos:"CTB"},
+{name:"ライリー",star:5,isSP:true,power:80,defense:88,speed:92,kick:70,isFW:false, title:"", pos:"CTB"},
+{name:"竹山",star:5,isSP:true,power:74,defense:82,speed:92,kick:85,isFW:false, title:"", pos:"WTB"},
+{name:"野口",star:4,isSP:true,power:75,defense:86,speed:88,kick:86,isFW:false, title:"", pos:"FB"}
+]
+},
+"spears": {
+name: "クボタスピアーズ", shortName: "スピアーズ", color: "#ff6600",
+roster: [
+{name:"紙森",star:4,isSP:false,power:90,defense:85,speed:65,isFW:true, title:"", pos:"PR"},
+{name:"マルコム・マークス",star:5,isSP:true,power:96,defense:95,speed:70,isFW:true, title:"", pos:"HO"},
+{name:"オペティ・ヘル",star:5,isSP:true,power:96,defense:90,speed:68,isFW:true, title:"", pos:"PR"},
+{name:"ルアン・ボタ",star:4,isSP:true,power:87,defense:89,speed:68,isFW:true, title:"", pos:"LO"},
+{name:"ブルブリング",star:4,isSP:true,power:92,defense:88,speed:68,isFW:true, title:"", pos:"LO"},
+{name:"タイラー・ポール",star:4,isSP:false,power:89,defense:90,speed:75,isFW:true, title:"", pos:"FL"},
+{name:"末永",star:4,isSP:false,power:88,defense:90,speed:78,isFW:true, title:"タックラー", pos:"FL"},
+{name:"マキシ",star:4,isSP:true,power:94,defense:90,speed:80,isFW:true, title:"", pos:"No8"},
+{name:"藤原",star:4,isSP:true,power:72,defense:85,speed:88,kick:80,isFW:false, title:"", pos:"SH"},
+{name:"バーナード・フォーリー",star:5,isSP:true,power:82,defense:90,speed:88,kick:96,isFW:false, title:"プレースキッカー", pos:"SO"},
+{name:"木田",star:4,isSP:true,power:86,defense:89,speed:93,kick:65,isFW:false, title:"スピードスター", pos:"WTB"},
+{name:"ヴァイレア",star:5,isSP:true,power:90,defense:88,speed:88,kick:65,isFW:false, title:"", pos:"CTB"},
+{name:"プレトリアス",star:5,isSP:true,power:85,defense:86,speed:89,kick:60,isFW:false, title:"", pos:"CTB"},
+{name:"根塚",star:4,isSP:true,power:84,defense:88,speed:93,kick:65,isFW:false, title:"", pos:"WTB"},
+{name:"スティーブンソン",star:5,isSP:true,power:85,defense:93,speed:93,kick:92,isFW:false, title:"", pos:"FB"}
+]
+},
+"sungoliath": {
+name: "東京サントリーサンゴリアス", shortName: "サンゴリアス", color: "#f57f17",
+roster: [
+{name:"小林",star:4,isSP:true,power:85,defense:85,speed:65,isFW:true, title:"", pos:"PR"},
+{name:"堀越",star:4,isSP:false,power:85,defense:88,speed:68,isFW:true, title:"", pos:"HO"},
+{name:"竹内",star:5,isSP:true,power:92,defense:88,speed:62,isFW:true, title:"", pos:"PR"},
+{name:"ジョージハモンド",star:4,isSP:true,power:88,defense:85,speed:68,isFW:true, title:"", pos:"LO"},
+{name:"ホッキングス",star:5,isSP:true,power:88,defense:84,speed:68,isFW:true, title:"", pos:"LO"},
+{name:"サムケイン",star:5,isSP:true,power:90,defense:92,speed:75,isFW:true, title:"", pos:"FL"},
+{name:"ショーンマクマーン",star:5,isSP:true,power:90,defense:90,speed:80,isFW:true, title:"", pos:"FL"},
+{name:"タタフ",star:4,isSP:true,power:93,defense:85,speed:78,isFW:true, title:"", pos:"No8"},
+{name:"流",star:5,isSP:true,power:75,defense:82,speed:88,kick:80,isFW:false, title:"", pos:"SH"},
+{name:"トラスク",star:4,isSP:false,power:78,defense:80,speed:85,kick:85,isFW:false, title:"", pos:"SO"},
+{name:"尾崎泰雅",star:5,isSP:true,power:85,defense:82,speed:92,kick:65,isFW:false, title:"スピードスター", pos:"WTB"},
+{name:"中村",star:5,isSP:true,power:88,defense:92,speed:82,kick:70,isFW:false, title:"", pos:"CTB"},
+{name:"中野",star:5,isSP:true,power:90,defense:88,speed:88,kick:60,isFW:false, title:"", pos:"CTB"},
+{name:"チェスリンコルビ",star:5,isSP:true,power:86,defense:88,speed:98,kick:83,isFW:false, title:"プレースキッカー", pos:"WTB"},
+{name:"松島",star:5,isSP:true,power:86,defense:90,speed:96,kick:80,isFW:false, title:"", pos:"FB"}
+]
+},
+"steelers": {
+name: "コベルコ神戸スティーラーズ", shortName: "スティーラーズ", color: "#c62828",
+roster: [
+{name:"高尾",star:4,isSP:true,power:88,defense:88,speed:67,isFW:true, title:"", pos:"PR"},
+{name:"アッシュ・ディクソン",star:4,isSP:false,power:89,defense:91,speed:68,isFW:true, title:"", pos:"HO"},
+{name:"山下",star:5,isSP:false,power:95,defense:91,speed:62,isFW:true, title:"", pos:"PR"},
+{name:"ブロディ・レタリック",star:5,isSP:true,power:99,defense:95,speed:72,isFW:true, title:"", pos:"LO"},
+{name:"ジェラード・カウリートゥイオティ",star:4,isSP:false,power:91,defense:88,speed:70,isFW:true, title:"", pos:"LO"},
+{name:"ティエナン・コストリー",star:5,isSP:true,power:93,defense:93,speed:80,isFW:true, title:"", pos:"FL"},
+{name:"アーディ・サベア",star:5,isSP:true,power:99,defense:97,speed:84,isFW:true, title:"タックラー", pos:"FL"},
+{name:"ワイサケ・ララトゥブア",star:4,isSP:false,power:91,defense:87,speed:82,isFW:true, title:"", pos:"No8"},
+{name:"上村",star:4,isSP:false,power:75,defense:81,speed:88,kick:75,isFW:false, title:"", pos:"SH"},
+{name:"李承信",star:5,isSP:true,power:87,defense:85,speed:88,kick:86,isFW:false, title:"プレースキッカー", pos:"SO"},
+{name:"イノケ・ブルア",star:4,isSP:true,power:91,defense:83,speed:94,kick:65,isFW:false, title:"", pos:"WTB"},
+{name:"タリ・イオアサ",star:4,isSP:false,power:89,defense:85,speed:90,kick:60,isFW:false, title:"", pos:"CTB"},
+{name:"レイナートブラウン",star:4,isSP:true,power:88,defense:96,speed:90,kick:65,isFW:false, title:"", pos:"CTB"},
+{name:"植田",star:5,isSP:true,power:87,defense:83,speed:94,kick:60,isFW:false, title:"スピードスター", pos:"WTB"},
+{name:"上ノ坊",star:5,isSP:true,power:88,defense:91,speed:94,kick:85,isFW:false, title:"", pos:"FB"}
+]
+},
+"drocks": {
+name:"浦安D-Rocks", shortName:"D-Rocks", color:"#111111",
+roster:[
+{name:"ハラホロ・トコラヒ",star:3,isSP:false,power:88,defense:84,speed:63,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"ソアネ・ミカエレ ヴィケナ",star:3,isSP:false,power:84,defense:82,speed:72,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"セコナイア・ポレ",star:3,isSP:false,power:89,defense:82,speed:64,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"エセイ・ハアンガナ",star:3,isSP:true,power:90,defense:86,speed:70,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"クインティン・ストレインジ",star:3,isSP:true,power:86,defense:84,speed:74,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"デヴァン・フランダース",star:3,isSP:true,power:88,defense:86,speed:82,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"マナアキ・セルビー リキット",star:3,isSP:true,power:87,defense:85,speed:78,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"ヤスパー・ヴィーセ",star:3,isSP:true,power:92,defense:89,speed:82,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"飯沼 蓮",star:3,isSP:true,power:72,defense:80,speed:89,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"田村 煕",star:3,isSP:true,power:75,defense:78,speed:77,kick:92,isFW:false,title:"",isKicker:true,pos:"SO"},
+{name:"大畑 亮太",star:3,isSP:false,power:78,defense:73,speed:91,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"サム・ケレビ",star:3,isSP:true,power:92,defense:87,speed:86,kick:70,isFW:false,title:"",pos:"CTB"},
+{name:"シェーン・ゲイツ",star:3,isSP:true,power:86,defense:84,speed:84,kick:68,isFW:false,title:"",pos:"CTB"},
+{name:"石井 魁",star:3,isSP:true,power:82,defense:76,speed:94,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"ジョーダン・ペタイア",star:3,isSP:true,power:88,defense:82,speed:92,kick:65,isFW:false,title:"",pos:"FB"}
+]
+},
+"shizuoka": {
+name:"静岡ブルーレヴズ", shortName:"静岡BR", color:"#1b5e20",
+roster:[
+{name:"伊藤 平一郎",star:3,isSP:false,power:86,defense:84,speed:62,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"日野 剛志",star:3,isSP:true,power:84,defense:89,speed:70,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"茂原 隆由",star:3,isSP:false,power:88,defense:82,speed:68,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"マリー・ダグラス",star:3,isSP:true,power:89,defense:85,speed:74,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"ジャスティン・サングスター",star:3,isSP:true,power:87,defense:85,speed:72,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"クワッガ・スミス",star:3,isSP:true,power:91,defense:92,speed:84,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"ヴェティ・トゥポウ",star:3,isSP:true,power:88,defense:84,speed:78,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"ステファン・ヴァハフォラウ",star:3,isSP:true,power:84,defense:82,speed:76,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"北村 瞬太郎",star:3,isSP:true,power:72,defense:81,speed:88,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"家村 健太",star:3,isSP:true,power:78,defense:79,speed:80,kick:88,isFW:false,title:"",isKicker:true,pos:"SO"},
+{name:"マロ・ツイタマ",star:3,isSP:true,power:86,defense:78,speed:90,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"ハンター・パイサミ",star:3,isSP:true,power:90,defense:84,speed:86,kick:60,isFW:false,title:"",pos:"CTB"},
+{name:"セミ・ラドラドラ",star:3,isSP:true,power:88,defense:83,speed:87,kick:65,isFW:false,title:"",pos:"CTB"},
+{name:"ジャック・ティム",star:3,isSP:false,power:82,defense:76,speed:88,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"奥村 翔",star:3,isSP:true,power:80,defense:80,speed:84,kick:70,isFW:false,title:"",pos:"FB"}
+]
+},
+"bravelupus": {
+name:"東芝ブレイブルーパス東京", shortName:"BL東京", color:"#7b1fa2",
+roster:[
+{name:"小鍜治 悠太",star:3,isSP:false,power:86,defense:83,speed:64,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"原田 衛",star:3,isSP:true,power:84,defense:88,speed:74,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"眞壁 照男",star:3,isSP:false,power:88,defense:84,speed:62,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"ワーナー・ディアンズ",star:3,isSP:true,power:93,defense:90,speed:79,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"マイケル・ストーバーグ",star:3,isSP:true,power:89,defense:87,speed:74,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"ジャック・デンプシー",star:3,isSP:true,power:90,defense:88,speed:84,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"佐々木 剛",star:3,isSP:true,power:86,defense:85,speed:78,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"リーチ マイケル",star:3,isSP:true,power:91,defense:93,speed:75,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"小川 高廣",star:3,isSP:true,power:73,defense:81,speed:84,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"松永 拓朗",star:3,isSP:true,power:78,defense:79,speed:82,kick:85,isFW:false,title:"",isKicker:true,pos:"SO"},
+{name:"ジョネ・ナイカブラ",star:3,isSP:true,power:88,defense:78,speed:94,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"デイヴィッド・ハヴィリ",star:3,isSP:true,power:88,defense:86,speed:83,kick:72,isFW:false,title:"",pos:"CTB"},
+{name:"ジョナ・ロウ",star:3,isSP:true,power:87,defense:82,speed:86,kick:65,isFW:false,title:"",pos:"CTB"},
+{name:"桑山 淳生",star:3,isSP:false,power:80,defense:75,speed:91,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"マイケル・コリンズ",star:3,isSP:true,power:84,defense:80,speed:88,kick:68,isFW:false,title:"",pos:"FB"}
+]
+},
+"tochigi": {
+name:"栃木ホンダヒート", shortName:"ホンダヒート", color:"#d32f2f",
+roster:[
+{name:"祝原 涼介",star:3,isSP:false,power:87,defense:83,speed:68,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"白濱 弘章",star:3,isSP:false,power:80,defense:84,speed:68,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"星野 克之",star:3,isSP:false,power:84,defense:82,speed:64,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"ワイサケ・ララトゥブア",star:3,isSP:true,power:91,defense:86,speed:75,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"小瀧 尚弘",star:3,isSP:true,power:88,defense:88,speed:70,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"アセリ・マシヴォウ",star:3,isSP:true,power:87,defense:84,speed:79,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"亀井 亮依",star:3,isSP:true,power:84,defense:84,speed:82,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"パブロ・マテーラ",star:3,isSP:true,power:92,defense:88,speed:83,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"福田 健太",star:3,isSP:true,power:73,defense:79,speed:87,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"小倉 順平",star:3,isSP:true,power:77,defense:80,speed:82,kick:90,isFW:false,title:"",isKicker:true,pos:"SO"},
+{name:"テビタ・リー",star:3,isSP:true,power:84,defense:76,speed:91,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"タニエル・テレア",star:3,isSP:true,power:88,defense:82,speed:88,kick:60,isFW:false,title:"",pos:"CTB"},
+{name:"ダーウィッド・ケラーマン",star:3,isSP:true,power:86,defense:84,speed:83,kick:65,isFW:false,title:"",pos:"CTB"},
+{name:"山下 楽平",star:3,isSP:false,power:80,defense:75,speed:90,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"FC・デュプレッシー",star:3,isSP:true,power:83,defense:81,speed:87,kick:70,isFW:false,title:"",pos:"FB"}
+]
+},
+"verblitz": {
+name:"トヨタヴェルブリッツ", shortName:"ヴェルブリッツ", color:"#fbc02d",
+roster:[
+{name:"細木 康太郎",star:3,isSP:false,power:86,defense:83,speed:66,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"彦坂 圭克",star:3,isSP:true,power:84,defense:89,speed:72,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"ハムダン・トゥイプロトゥ",star:3,isSP:true,power:91,defense:86,speed:70,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"ローレンス・エラスマス",star:3,isSP:true,power:90,defense:87,speed:74,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"ヒンガノ・ロロヘア",star:3,isSP:true,power:88,defense:84,speed:76,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"姫野 和樹",star:3,isSP:true,power:92,defense:92,speed:83,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"青木 恵斗",star:3,isSP:true,power:87,defense:88,speed:82,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"奥井 章仁",star:3,isSP:true,power:90,defense:86,speed:84,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"茂野 海人",star:3,isSP:true,power:74,defense:82,speed:86,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"松田 力也",star:3,isSP:true,power:82,defense:81,speed:84,kick:94,isFW:false,title:"",isKicker:true,pos:"SO"},
+{name:"マーク・テレア",star:3,isSP:true,power:91,defense:80,speed:96,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"ニコラス・マクカラン",star:3,isSP:true,power:88,defense:84,speed:87,kick:68,isFW:false,title:"",pos:"CTB"},
+{name:"シオサイア・フィフィタ",star:3,isSP:true,power:92,defense:82,speed:90,kick:65,isFW:false,title:"",pos:"CTB"},
+{name:"高橋 汰地",star:3,isSP:true,power:84,defense:77,speed:93,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"野口 竜司",star:3,isSP:true,power:86,defense:84,speed:90,kick:75,isFW:false,title:"",pos:"FB"}
+]
+},
+"dynaboars": {
+name:"三菱重工相模原ダイナボアーズ", shortName:"ダイナボアーズ", color:"#455a64",
+roster:[
+{name:"ピーター・ショルツ",star:3,isSP:false,power:88,defense:84,speed:66,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"宮里 侑樹",star:3,isSP:false,power:80,defense:84,speed:69,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"安藤 啓太",star:3,isSP:false,power:84,defense:82,speed:64,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"ウォルト・スティーンカンプ",star:3,isSP:true,power:90,defense:86,speed:74,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"ルーク・ポーター",star:3,isSP:true,power:87,defense:84,speed:76,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"フリードル・オリヴィエー",star:3,isSP:true,power:89,defense:88,speed:82,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"吉田 杏",star:3,isSP:true,power:85,defense:87,speed:79,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"セル ホゼ",star:3,isSP:true,power:88,defense:85,speed:82,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"ブラッド・ウェバー",star:3,isSP:true,power:78,defense:80,speed:91,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"三宅 駿",star:3,isSP:true,power:78,defense:78,speed:81,kick:82,isFW:false,title:"",isKicker:false,pos:"SO"},
+{name:"ルカニョ・アム",star:3,isSP:true,power:92,defense:89,speed:84,kick:65,isFW:false,title:"",pos:"CTB"},
+{name:"マット・ヴァエガ",star:3,isSP:true,power:86,defense:82,speed:88,kick:60,isFW:false,title:"",pos:"CTB"},
+{name:"カート=リー・アレンゼ",star:3,isSP:true,power:87,defense:78,speed:97,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"濱野 隼大",star:3,isSP:false,power:83,defense:76,speed:92,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"セミシ・マシレワ",star:3,isSP:true,power:85,defense:81,speed:91,kick:68,isFW:false,title:"",pos:"FB"}
+]
+},
+"eagles": {
+name:"横浜キヤノンイーグルス", shortName:"イーグルス", color:"#d32f2f",
+roster:[
+{name:"知念 雄",star:3,isSP:false,power:88,defense:84,speed:62,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"庭井 祐輔",star:3,isSP:true,power:82,defense:87,speed:70,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"シオエリ・ヴァカラヒ",star:3,isSP:false,power:87,defense:82,speed:68,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"リアキマタギ・モリ",star:3,isSP:true,power:89,defense:86,speed:76,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"パリパリ・パーキンソン",star:3,isSP:true,power:90,defense:86,speed:78,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"ビリー・ハーモン",star:3,isSP:true,power:87,defense:91,speed:86,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"サミぺ二・フィナウ",star:3,isSP:true,power:90,defense:86,speed:82,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"サウマキ アマナキ",star:3,isSP:true,power:89,defense:85,speed:84,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"ファフ・デクラーク",star:3,isSP:true,power:80,defense:83,speed:98,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"田村 優",star:3,isSP:true,power:82,defense:82,speed:83,kick:92,isFW:false,title:"",isKicker:true,pos:"SO"},
+{name:"ジェシー・クリエル",star:3,isSP:true,power:92,defense:88,speed:88,kick:68,isFW:false,title:"",pos:"CTB"},
+{name:"梶村 祐介",star:3,isSP:true,power:84,defense:84,speed:83,kick:65,isFW:false,title:"",pos:"CTB"},
+{name:"石田 吉平",star:3,isSP:true,power:80,defense:76,speed:95,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"竹澤 正祥",star:3,isSP:false,power:82,defense:77,speed:92,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"武藤 航生",star:3,isSP:true,power:82,defense:80,speed:88,kick:70,isFW:false,title:"",pos:"FB"}
+]
+},
+"blackrams": {
+name:"リコーブラックラムズ東京", shortName:"ブラックラムズ", color:"#111111",
+roster:[
+{name:"パディー・ライアン",star:3,isSP:false,power:88,defense:83,speed:63,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"武井 日向",star:3,isSP:true,power:83,defense:88,speed:72,kick:45,isFW:true,title:"",pos:"HO"},
+{name:"大山 祥平",star:3,isSP:false,power:86,defense:82,speed:65,kick:40,isFW:true,title:"",pos:"PR"},
+{name:"ジャンドレ・ラブスカフニ",star:3,isSP:true,power:90,defense:88,speed:80,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"フィリックス・カラプ",star:3,isSP:true,power:88,defense:84,speed:76,kick:45,isFW:true,title:"",pos:"LO"},
+{name:"リアム・ギル",star:3,isSP:true,power:89,defense:91,speed:84,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"マクカラン ブロディ",star:3,isSP:true,power:87,defense:86,speed:80,kick:45,isFW:true,title:"",pos:"FL"},
+{name:"ファカタヴァ アマト",star:3,isSP:true,power:91,defense:86,speed:82,kick:45,isFW:true,title:"",pos:"No8"},
+{name:"TJ・ペレナラ",star:3,isSP:true,power:79,defense:82,speed:92,kick:78,isFW:false,title:"",pos:"SH"},
+{name:"ブレンダン・オーウェン",star:3,isSP:true,power:82,defense:80,speed:84,kick:78,isFW:false,title:"",isKicker:false,pos:"SO"},
+{name:"秋濱 悠太",star:3,isSP:false,power:81,defense:76,speed:91,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"タマティ・トゥア",star:3,isSP:true,power:88,defense:83,speed:87,kick:65,isFW:false,title:"",pos:"CTB"},
+{name:"PJ・ラトゥ",star:3,isSP:true,power:86,defense:82,speed:84,kick:60,isFW:false,title:"",pos:"CTB"},
+{name:"山村 知也",star:3,isSP:true,power:83,defense:77,speed:94,kick:55,isFW:false,title:"",pos:"WTB"},
+{name:"アイザック・ルーカス",star:3,isSP:true,power:82,defense:81,speed:91,kick:72,isFW:false,title:"",pos:"FB"}
+]
+},
+
+};
+
+let teamA = [], teamB = [], teamAName = "", teamBName = "", teamAShort = "", teamBShort = "";
+
+function getActualVal(p, key) {
+const mults = { 5: 1.05, 4: 1.00, 3: 0.95, 2: 0.90 };
+let m = mults[p.star] || 1.0;
+if (p.isSP) m += 0.05;
+let val = (p[key] || 0) * m;
+if (key === 'speed' && p.title === 'スピードスター') val *= 1.1;
+if (key === 'defense' && p.title === 'タックラー') val *= 1.1;
+return Math.floor(val);
+}
+
+function getTeamAvg(teamName, key, onlyFW = false, onlyBK = false) {
+let roster = getActiveRoster(teamName);
+if (onlyFW) roster = roster.filter(p => p.isFW);
+if (onlyBK) roster = roster.filter(p => !p.isFW);
+if (roster.length === 0) return 0;
+return roster.reduce((sum, p) => sum + getActualVal(p, key), 0) / roster.length;
+}
+
+function calculateKickSuccess(kicker, team, isConv = false) {
+let pos = state.fieldPos;
+if (isConv) pos = (team === "A") ? 90 : 10;
+
+// KICK値は直近のリーグワン公式戦キック実績を反映した基礎値。
+let baseRate = getActualVal(kicker, 'kick');
+
+let maxRate = 80;
+if (kicker.name === "山沢") maxRate = 86.1;
+else if (kicker.name === "バーナード・フォーリー") maxRate = 82.6;
+
+if (kicker.title === "プレースキッカー") {
+baseRate += 5; maxRate += 5;
+}
+
+// キック位置による距離ペナルティ。
+// PGはゴールまでの距離が伸びるほど成功率を下げ、55m超は現実的に狙わない。
+if (!isConv) {
+const distToGoal = team === "A" ? 100 - pos : pos;
+if (distToGoal > 55) return 0;
+if (distToGoal > 30) {
+const distancePenalty = Math.pow(distToGoal - 30, 1.15) * 0.70;
+baseRate -= distancePenalty;
+}
+}
+
+// 横方向の位置による角度ペナルティ。
+// fieldY=50が中央。タッチラインに近いほど成功率を下げる。
+const lateralDistance = Math.abs(50 - state.fieldY);
+const anglePenalty = lateralDistance * 0.40;
+baseRate -= anglePenalty;
+
+let finalRate = Math.max(0, Math.min(baseRate, maxRate));
+return Math.round(finalRate * 10) / 10;
+}
+function getPName(p) {
+const sClass = `star${p.star}`;
+const sp = p.isSP ? `<span class="sp-badge">SP</span>` : "";
+const title = p.title ? `<span class="title-tag">${p.title}</span>` : "";
+return `<span class="rarity ${sClass}">☆${p.star}</span>${sp}${p.name}${title}`;
+}
+
+function trackAction(p, team, points) {
+if (!p) return;
+if (!state.pStats[p.name]) state.pStats[p.name] = { p: p, team: team, score: 0 };
+state.pStats[p.name].score += points;
+}
+
+function selectPOM() {
+let winTeam = "DRAW";
+if (state.scoreA > state.scoreB) winTeam = "A"; else if (state.scoreB > state.scoreA) winTeam = "B";
+let isKickDecisive = false; let scoreDiff = Math.abs(state.scoreA - state.scoreB);
+if (winTeam !== "DRAW" && scoreDiff <= 3) isKickDecisive = true;
+let bestPlayer = null; let maxScore = -1;
+for (let name in state.pStats) {
+let st = state.pStats[name];
+if (winTeam !== "DRAW" && st.team !== winTeam) continue;
+let baseScore = st.score;
+if (st.p && st.p.title === "プレースキッカー") { baseScore = Math.floor(baseScore * (isKickDecisive ? 0.6 : 0.3)); }
+let finalScore = baseScore + Math.random() * 20;
+if (finalScore > maxScore) { maxScore = finalScore; bestPlayer = st.p; }
+}
+if (!bestPlayer) bestPlayer = (winTeam === "B") ? teamB[7] : teamA[7];
+return bestPlayer;
+}
+
+const el = {
+setupUI: document.getElementById("setupUI"), gameUI: document.getElementById("gameUI"),
+myTeamSelect: document.getElementById("myTeamSelect"), opTeamSelect: document.getElementById("opTeamSelect"), startMatchBtn: document.getElementById("startMatchBtn"),
+teamANameDisplay: document.getElementById("teamANameDisplay"), teamBNameDisplay: document.getElementById("teamBNameDisplay"), matchTitleDisplay: document.getElementById("matchTitleDisplay"),
+clock: document.getElementById("clock"), timeline: document.getElementById("timeline"),
+kickoffUI: document.getElementById("kickoffUI"), kickLongBtn: document.getElementById("kickLongBtn"), kickShortBtn: document.getElementById("kickShortBtn"),
+penUI: document.getElementById("penaltyUI"), lineoutUI: document.getElementById("lineoutUI"), scrumUI: document.getElementById("scrumUI"),
+penPos: document.getElementById("penPos"), penType: document.getElementById("penType"), kickChance: document.getElementById("kickChance"),
+lineoutPos: document.getElementById("lineoutPos"), scrumPos: document.getElementById("scrumPos"),
+penMarker: document.getElementById("penMarker"), lineoutMarker: document.getElementById("lineoutMarker"), scrumMarker: document.getElementById("scrumMarker"),
+pgBtn: document.getElementById("pgBtn"), touchBtn: document.getElementById("touchBtn"), scrumBtn: document.getElementById("scrumBtn"), tapTouchBtn: document.getElementById("tapTouchBtn"),
+loMaulBtn: document.getElementById("loMaulBtn"), loBkBtn: document.getElementById("loBkBtn"),
+scrumPushBtn: document.getElementById("scrumPushBtn"), scrumBkBtn: document.getElementById("scrumBkBtn"), scrumEightBtn: document.getElementById("scrumEightBtn"),
+sA: document.getElementById("sA"), sB: document.getElementById("sB"), tA: document.getElementById("tA"), tB: document.getElementById("tB"),
+gA: document.getElementById("gA"), gB: document.getElementById("gB"), pgA: document.getElementById("pgA"), pgB: document.getElementById("pgB"),
+stats: document.getElementById("stats"), finalScore: document.getElementById("finalScore"), pomDisplay: document.getElementById("pomDisplay"),
+restartBtn: document.getElementById("restartBtn"), speedSelect: document.getElementById("speedSelect"), pauseBtn: document.getElementById("pauseBtn")
+};
+
+el.startMatchBtn.addEventListener("click", () => {
+const myTeamKey = el.myTeamSelect.value; const opTeamKey = el.opTeamSelect.value;
+teamA = JSON.parse(JSON.stringify(teamTemplates[myTeamKey].roster)); teamB = JSON.parse(JSON.stringify(teamTemplates[opTeamKey].roster));
+teamAName = teamTemplates[myTeamKey].name; teamBName = teamTemplates[opTeamKey].name;
+teamAShort = teamTemplates[myTeamKey].shortName; teamBShort = teamTemplates[opTeamKey].shortName;
+el.teamANameDisplay.innerText = teamAName; el.teamBNameDisplay.innerText = teamBName;
+el.matchTitleDisplay.innerText = `${teamAShort} vs ${teamBShort}`;
+el.sA.style.background = teamTemplates[myTeamKey].color; el.sB.style.background = teamTemplates[opTeamKey].color;
+el.setupUI.style.display = "none"; el.gameUI.style.display = "block";
+initGame();
+});
+
+function addTime(sec) {
+if (state.isTimeOver || state.gameOver) return;
+state.second += sec; const addMin = Math.floor(state.second / 60); state.second = state.second % 60;
+if (addMin > 0) {
+state.minute += addMin;
+for (let i = state.sinBin.length - 1; i >= 0; i--) {
+state.sinBin[i].remaining -= addMin;
+if (state.sinBin[i].remaining <= 0) {
+log(`🏃‍♂️🔄 【シンビン明け】 10分間の一時退場が終了！ [${getPName(state.sinBin[i].player)}] が戻ります！`, "return", state.sinBin[i].team);
+state.sinBin.splice(i, 1);
+}
+}
+}
+if (!state.isTimeOver && ((state.minute >= 40 && !state.halfEnded) || (state.minute >= 80 && !state.gameOver))) {
+state.isTimeOver = true; log(`⏱️ ホーンが鳴りました！ラストワンプレーです！`, "end");
+}
+render();
+}
+
+function initGame() {
+Object.assign(state, {
+minute: 0, second: 0, scoreA: 0, scoreB: 0, tryA: 0, tryB: 0, convA: 0, convB: 0, pgA: 0, pgB: 0,
+fieldPos: 50, fieldY: 50, possession: "A", penalty: false, penaltyTeam: null, kickoff: true,
+gameOver: false, halfEnded: false, secondHalfStarted: false, isTimeOver: false,
+scoringSequence: false, isSetPieceChoice: false, currentJumper: null, sinBin: [], pStats: {},
+isLineout: false, wasLineout: false, isPenaltyTouchLineout: false, collapseWarnings: { A: 0, B: 0 },
+consecutiveScrumCollapse: { A: 0, B: 0 }, phases: 0, isPaused: false, wasTurnoverOrKickReturn: false
+});
+if (el.pauseBtn) { el.pauseBtn.innerHTML = "⏸️ 停止"; el.pauseBtn.style.background = "#fbc02d"; el.pauseBtn.style.color = "#111"; }
+el.timeline.innerHTML = ""; el.stats.style.display = "none"; el.pomDisplay.style.display = "none";
+render(); clearInterval(intervalId); intervalId = setInterval(engine, parseInt(el.speedSelect.value));
+log(`🏉 ${teamAShort} vs ${teamBShort}！間もなくキックオフ！`, "start");
+}
+
+function render() {
+let minStr = state.minute; let secStr = state.second < 10 ? "0" + state.second : state.second;
+if (state.minute > 80) el.clock.innerText = "80+分"; else if (state.minute > 40 && !state.secondHalfStarted) el.clock.innerText = "40+分"; else el.clock.innerText = `${minStr}:${secStr}`;
+el.sA.innerText = state.scoreA; el.sB.innerText = state.scoreB; el.tA.innerText = state.tryA; el.tB.innerText = state.tryB;
+el.gA.innerText = state.convA; el.gB.innerText = state.convB; el.pgA.innerText = state.pgA; el.pgB.innerText = state.pgB;
+}
+
+function log(text, type = "", team = "") {
+let leftHTML = team === "A" ? text : ""; let rightHTML = team === "B" ? text : "";
+if (!team) leftHTML = text;
+let timeStr = `${state.minute}:${state.second < 10 ? '0'+state.second : state.second}`;
+if(state.minute > 80) timeStr = "80+"; else if(state.minute > 40 && !state.secondHalfStarted) timeStr = "40+";
+const html = `<div class="rowLog ${type}"><div class="left">${leftHTML}</div><div class="centerBox"><div>${timeStr}</div><div style="font-weight:bold; color:#002244; font-size:14px;">${state.scoreA} - ${state.scoreB}</div></div><div class="right">${rightHTML}</div></div>`;
+el.timeline.innerHTML += html; el.timeline.scrollTop = el.timeline.scrollHeight;
+}
+
+function getRandomPlayer(team) {
+const list = team === "A" ? teamA : teamB;
+const activeList = list.filter(p => !state.sinBin.some(sb => sb.player.name === p.name));
+if(activeList.length === 0) return list[0];
+return activeList[Math.floor(Math.random()*activeList.length)];
+}
+
+function getActiveRoster(team) {
+const list = team === "A" ? teamA : teamB;
+return list.filter(p => !state.sinBin.some(sb => sb.player.name === p.name));
+}
+
+function getYZoneInfo() {
+if (state.fieldY <= 20) return "左端";
+if (state.fieldY >= 80) return "右端";
+if (state.fieldY >= 35 && state.fieldY <= 65) return "中央";
+return "ハーフ付近";
+}
+
+function getZone(team) {
+const pos = team==="A" ? state.fieldPos : 100-state.fieldPos;
+let yStr = getYZoneInfo();
+if(pos>=90) return `敵陣G前・${yStr}`; if(pos>=80) return `敵陣22m内・${yStr}`; if(pos>=60) return `敵陣・${yStr}`; if(pos>=40) return `ハーフウェイ・${yStr}`; if(pos>=22) return `自陣・${yStr}`; return `自陣22m内・${yStr}`;
+}
+
+function resetPenalty() { state.penalty = false; state.penaltyTeam = null; state.scoringSequence = false; el.penUI.style.display = "none"; }
+
+function checkTimeOverEnd(force = false) {
+if (!state.isTimeOver && !force) return false;
+if (!state.halfEnded) {
+state.halfEnded = true; state.isTimeOver = false; log("⏱️ 前半終了！ハーフタイムへ。", "end"); return true;
+} else if (!state.gameOver) {
+state.gameOver = true; state.isTimeOver = false; log("🏁 試合終了！ノーサイド！", "end");
+el.stats.style.display = "block"; el.finalScore.innerHTML = `${teamAShort} <b>${state.scoreA}</b> - <b>${state.scoreB}</b> ${teamBShort}`;
+const pom = selectPOM(); const pomTeam = state.pStats[pom.name] ? state.pStats[pom.name].team : (teamA.some(p => p.name === pom.name) ? "A" : "B");
+const tName = pomTeam === "A" ? teamAName : teamBName;
+el.pomDisplay.innerHTML = `<div style="color:#f57f17; font-weight:bold; font-size:0.8em; margin-bottom:5px;">🏆 Player of the Match</div><div style="color:#d32f2f;">${getPName(pom)}</div><div style="font-size:0.7em; color:#555; margin-top:5px;">(${tName})</div>`;
+el.pomDisplay.style.display = "block"; return true;
+} return false;
+}
+
+function getLogicalLineoutChoice(team) {
+if (Math.random() < 0.2) return Math.random() < 0.5 ? "maul" : "backs";
+const attackPos = team === "A" ? state.fieldPos : 100 - state.fieldPos;
+const fwPower = getTeamAvg(team, 'power', true);
+const bkSpeed = getTeamAvg(team, 'speed', false, true);
+if (attackPos >= 80) return (fwPower >= 85) ? "maul" : "maul";
+if (bkSpeed > fwPower + 5) return "backs"; return "maul";
+}
+
+function getLogicalScrumChoice(team) {
+if (Math.random() < 0.2) return ["push", "backs", "eight"][Math.floor(Math.random()*3)];
+const defTeam = team === "A" ? "B" : "A"; const attFw = getTeamAvg(team, 'power', true); const defFw = getTeamAvg(defTeam, 'power', true);
+const attackPos = team === "A" ? state.fieldPos : 100 - state.fieldPos;
+if (attFw > defFw + 3) return "push"; if (attackPos >= 85 && attFw > defFw) return "push";
+if (getTeamAvg(team, 'speed', false, true) > getTeamAvg(defTeam, 'speed', false, true)) return "backs";
+return "eight";
+}
+
+function executeLineout(choice, team, jumper) {
+state.isSetPieceChoice = false; state.scoringSequence = true; addTime(30 + Math.floor(Math.random() * 16));
+const defTeam = team === "A" ? "B" : "A"; const attackPos = team === "A" ? state.fieldPos : 100 - state.fieldPos;
+
+setTimeout(() => {
+state.phases = 0;
+if (choice === "maul") {
+log(`🚜 タッチライン際からフォワード陣が強固なモールを形成！ジリジリと前へ！`, "start", team);
+// モール進行時は端に少し寄ったまま
+state.fieldY = state.fieldY < 50 ? 15 : 85;
+setTimeout(() => {
+if (attackPos >= 85) {
+const rMaul = Math.random();
+if (rMaul < 0.3) {
+const fws = getActiveRoster(team).filter(p=>p.isFW); const tryP = fws.length > 0 ? fws[Math.floor(Math.random()*fws.length)] : jumper;
+completeTry(team, tryP, false, `💪 ゴール前モールから見事に押し切った！端の厳しい位置から [${getPName(tryP)}] がグラウンディング！`);
+} else if (rMaul < 0.6) handleCollapsing(defTeam, team);
+else if (rMaul < 0.8) {
+log(`🛑 モールが完全に停滞、アンプレアブル！守備側がうまく絡んで進行阻止！`, "pen", defTeam);
+if (state.isTimeOver) {
+state.scoringSequence = false; const endMsg = state.halfEnded ? "ノーサイド！" : "前半終了！";
+log(`🛑 モール停滞でボールデッド！ここで笛！${endMsg}`, "end"); checkTimeOverEnd(true);
+} else { log(`🤝 スクラムで再開。`, "start", defTeam); awardScrum(defTeam); }
+} else {
+log(`💥 モールからボールを持ち出し、ラックへ！ゴールライン目前！`, "start", team);
+state.wasLineout = true; state.scoringSequence = false;
+state.fieldY = state.fieldY < 50 ? 25 : 75; // 少し中央へ
+}
+} else {
+if (Math.random() < 0.25) handleCollapsing(defTeam, team);
+else {
+const gain = 5 + Math.floor(Math.random() * 10);
+if (team === "A") state.fieldPos += gain; else state.fieldPos -= gain;
+log(`💪 モールで力強く前進！ [${getPName(jumper)}] らFW陣がゲインラインを切る！`, "start", team);
+state.wasLineout = true; state.scoringSequence = false;
+}
+}
+}, 1500);
+} else {
+const bks = getActiveRoster(team).filter(p => !p.isFW);
+const bkCarrier = bks.length > 0 ? (bks.find(p=>p.pos==="SO") || bks[0]) : getRandomPlayer(team);
+log(`⚡ ラインアウトから素早くバックスへ展開！大きく中央へパスアウトし、[${getPName(bkCarrier)}] を軸にサインプレー！`, "start", team);
+// バックス展開で中央へ移動
+state.fieldY = state.fieldY < 50 ? state.fieldY + 30 : state.fieldY - 30;
+trackAction(bkCarrier, team, 5);
+setTimeout(() => {
+const gain = 10 + Math.floor(Math.random() * 15);
+if (team === "A") state.fieldPos += gain; else state.fieldPos -= gain;
+state.wasLineout = true; state.scoringSequence = false;
+}, 1000);
+}
+}, 500);
+}
+
+function executeScrum(choice, team) {
+state.isSetPieceChoice = false; state.scoringSequence = true; addTime(30 + Math.floor(Math.random() * 16));
+const defTeam = team === "A" ? "B" : "A"; const tName = team === "A" ? teamAShort : teamBShort;
+
+setTimeout(() => {
+state.phases = 0;
+if (choice === "push") {
+log(`🤝 ${tName}、スクラムで強力なプッシュ！FWが圧力をかける！`, "start", team);
+setTimeout(() => {
+const attFw = getTeamAvg(team, 'power', true); const defFw = getTeamAvg(defTeam, 'power', true);
+let penChance = 0.35 + (attFw - defFw)*0.01; penChance = Math.max(0.1, Math.min(penChance, 0.8));
+if (Math.random() < penChance) {
+const teamRoster = defTeam === "A" ? teamA : teamB;
+let props = [teamRoster[0], teamRoster[2]].filter(p => !state.sinBin.some(sb => sb.player.name === p.name));
+const offendingP = props.length > 0 ? props[Math.floor(Math.random() * props.length)] : (getActiveRoster(defTeam).find(p => p.isFW) || getRandomPlayer(defTeam));
+state.consecutiveScrumCollapse[defTeam]++; const count = state.consecutiveScrumCollapse[defTeam];
+log(`🛑 笛が鳴る！ディフェンス側のスクラムがたまらず崩れた！`, "pen", team);
+
+setTimeout(() => {
+if (count === 1) { state.scoringSequence = false; handlePenalty(team, "コラプシング（スクラム）", offendingP.name); }
+else if (count === 2) {
+log(`⚠️ スクラムでのコラプシングが連続しています！チームコーション！`, "yellow", defTeam);
+setTimeout(() => { state.scoringSequence = false; handlePenalty(team, "コラプシング（スクラム）", offendingP.name); }, 2000);
+} else {
+log(`🛑 ピーッ！チームコーション後も繰り返されるスクラムコラプシング！`, "pen", team);
+setTimeout(() => {
+log(`🟨 [${getPName(offendingP)}] にイエローカード！10分間のシンビン！`, "yellow", defTeam);
+state.sinBin.push({ player: offendingP, team: defTeam, remaining: 10 }); state.consecutiveScrumCollapse[defTeam] = 0;
+const attackPos = team === "A" ? state.fieldPos : 100 - state.fieldPos;
+if (attackPos >= 85) {
+addTime(90); if(team==="A"){ state.scoreA+=7; state.tryA++; } else { state.scoreB+=7; state.tryB++; }
+state.fieldY = 50; // ペナルティトライは中央扱い
+render(); log(`🙌 スクラムでの故意の反則によりペナルティトライ認定！ (+7点)`, "try", team);
+setTimeout(() => {
+state.scoringSequence = false; if (checkTimeOverEnd()) return;
+state.possession = team==="A"?"B":"A"; state.kickoff = true;
+}, 2500);
+} else { setTimeout(() => { state.scoringSequence = false; handlePenalty(team, "コラプシング（スクラム）", offendingP.name); }, 1500); }
+}, 1500);
+}
+}, 1000);
+} else {
+log(`💦 スクラムは互角！ボールをうまくキープしてフェーズへ。`, "start", team);
+state.consecutiveScrumCollapse = { A: 0, B: 0 }; state.possession = team; state.scoringSequence = false;
+}
+}, 1500);
+} else if (choice === "backs") {
+log(`⚡ スクラムから素早くボールを出し、バックスへ展開！`, "start", team);
+// Y軸をランダムに振る
+state.fieldY = Math.max(10, Math.min(90, state.fieldY + (Math.random() < 0.5 ? -25 : 25)));
+setTimeout(() => {
+state.consecutiveScrumCollapse = { A: 0, B: 0 }; state.possession = team;
+const gain = 5 + Math.floor(Math.random()*10);
+if (team==="A") state.fieldPos+=gain; else state.fieldPos-=gain;
+state.scoringSequence = false;
+}, 1000);
+} else if (choice === "eight") {
+const eights = getActiveRoster(team).filter(p=>p.pos==="No8"); const eight = eights.length > 0 ? eights[0] : getRandomPlayer(team);
+log(`🏃 スクラム最後尾から [${getPName(eight)}] が強烈なサイドアタック！`, "start", team);
+setTimeout(() => {
+state.consecutiveScrumCollapse = { A: 0, B: 0 };
+const attackPos = team === "A" ? state.fieldPos : 100 - state.fieldPos;
+if (attackPos < 40) {
+const shs = getActiveRoster(team).filter(p=>p.pos==="SH"); const kicker = shs.length > 0 ? shs[0] : getRandomPlayer(team);
+const kickGain = 30 + Math.floor(Math.random() * 15);
+log(`🥾 8単でディフェンスを引き付け、空いたスペースへ [${getPName(kicker)}] がボックスキック！`, "kick", team);
+if (team === "A") state.fieldPos += kickGain; else state.fieldPos -= kickGain;
+state.fieldY = Math.random() < 0.5 ? 5 : 95; // タッチに出たとする
+log(`💨 相手ボールのラインアウトとなります。`, "start", defTeam);
+state.possession = defTeam; state.isLineout = true;
+} else {
+state.possession = team; const gain = 8 + Math.floor(Math.random()*12);
+if (team==="A") state.fieldPos+=gain; else state.fieldPos-=gain;
+log(`💥 ゲインラインを突破してラックを形成！`, "start", team);
+}
+trackAction(eight, team, 5); state.scoringSequence = false;
+}, 1000);
+}
+}, 500);
+}
+
+function awardScrum(team) {
+state.possession = team; state.scoringSequence = false; state.isSetPieceChoice = true; state.phases = 0;
+// スクラムは極端な端では組めないため、Y座標を少し内側に入れる
+if (state.fieldY < 15) state.fieldY = 15; if (state.fieldY > 85) state.fieldY = 85;
+
+if (team === "A") {
+el.scrumPos.textContent = `📍 地点: ${state.fieldPos}m (${getZone("A")})`;
+el.scrumMarker.style.left = state.fieldPos + "%"; el.scrumMarker.style.top = state.fieldY + "%";
+el.scrumUI.style.display = "block";
+} else setTimeout(() => { executeScrum(getLogicalScrumChoice("B"), "B"); }, 1000);
+}
+
+function tryScore(team) {
+  state.scoringSequence = true;
+  const carrier = getRandomPlayer(team);
+  const defTeam = team === "A" ? "B" : "A";
+  const carrierName = getPName(carrier);
+  const advantageSpot = state.fieldPos; // トライ判定前のプレー位置を反則地点として保持
+
+  if (Math.random() < 0.28) {
+    // TMOで確認する事象を先に決め、オンフィールドディシジョンと確認理由を明示する。
+    const roll = Math.random();
+    let incident;
+    if (roll < 0.24) incident = "knockon";
+    else if (roll < 0.40) incident = "forward";
+    else if (roll < 0.56) incident = "obstruction";
+    else if (roll < 0.70) incident = "high";
+    else if (roll < 0.82) incident = "offside";
+    else incident = "grounding";
+
+    log(`🏉 ${carrierName}がインゴールに持ち込みトライ！しかしレフリーがTMOを要求。`, "try", team);
+    const reason = {
+      knockon: "オンフィールドディシジョンはトライですが、グラウンディング前にノックオンがあった可能性があるためチェックします。",
+      forward: "オンフィールドディシジョンはトライですが、直前のパスがスローフォワードだった可能性があるためチェックします。",
+      obstruction: "オンフィールドディシジョンはトライですが、攻撃側のオフェンスオブストラクションがあった可能性があるためチェックします。",
+      high: "オンフィールドディシジョンはトライですが、直前に守備側のハイタックルがあり、アドバンテージが適用されるか確認します。",
+      offside: "オンフィールドディシジョンはトライですが、守備側のオフサイドがあり、アドバンテージが適用されるか確認します。",
+      grounding: "オンフィールドディシジョンはトライですが、ボールが地面についていたか、グラウンディングを確認します。"
+    }[incident];
+    log(`📺 ${reason}`, "tmo");
+
+    setTimeout(() => {
+      const decision = Math.random();
+      // ノックオン／スローフォワードは攻撃側の反則。守備側スクラムで再開。
+      if (incident === "knockon" || incident === "forward") {
+        if (decision < 0.72) {
+          const foul = incident === "knockon" ? "ノックオン" : "スローフォワード";
+          log(`🚫 TMO判定：トライは認められません。${foul}が確認されました。`, "pen", defTeam);
+          log(`🔁 ${defTeam === "A" ? teamAShort : teamBShort}ボール、相手ゴール前5mのスクラムで再開します。`, "start", defTeam);
+          state.scoringSequence = false;
+          if (state.isTimeOver) { checkTimeOverEnd(true); return; }
+          state.fieldPos = team === "A" ? 95 : 5;
+          awardScrum(defTeam);
+        } else {
+          log("✅ TMO判定：反則は確認されません。オンフィールドディシジョンどおりトライ！", "tmo", team);
+          completeTry(team, carrier, true);
+        }
+        return;
+      }
+
+      // 攻撃側のオブストラクションは相手ペナルティ。
+      if (incident === "obstruction") {
+        if (decision < 0.72) {
+          const offender = getRandomPlayer(team);
+          log(`🚫 TMO判定：ノートライ。攻撃側のオフェンスオブストラクションが確認されました。`, "pen", defTeam);
+          log("🔁 相手ボールのペナルティで再開します。", "start", defTeam);
+          state.scoringSequence = false;
+          if (state.isTimeOver) { checkTimeOverEnd(true); return; }
+          handlePenalty(defTeam, "オフェンスオブストラクション", offender.name);
+        } else {
+          log("✅ TMO判定：オフェンスオブストラクションは確認されません。トライ！", "tmo", team);
+          completeTry(team, carrier, true);
+        }
+        return;
+      }
+
+      // 守備側の反則でアドバンテージが出ていたケース。
+      if (incident === "high" || incident === "offside") {
+        const foul = incident === "high" ? "ハイタックル" : "オフサイド";
+        const offender = getRandomPlayer(defTeam);
+        if (decision < 0.58) {
+          log(`✅ TMO判定：守備側の${foul}が確認されました。アドバンテージ中にトライが成立したため、トライを認めます。`, "tmo", team);
+          completeTry(team, carrier, true);
+        } else {
+          log(`🚫 TMO判定：トライは認められません。直前の守備側の${foul}に対するアドバンテージを適用し、反則地点に戻ります。`, "pen", team);
+          log(`🔁 ${foul}の地点から${team === "A" ? teamAShort : teamBShort}ボールのペナルティで再開します。`, "start", team);
+          state.scoringSequence = false;
+          if (state.isTimeOver) { checkTimeOverEnd(true); return; }
+          state.fieldPos = advantageSpot;
+          handlePenalty(team, foul, offender.name);
+        }
+        return;
+      }
+
+      if (decision < 0.20) {
+        log("🚫 TMO判定：ノートライ。グラウンディングは確認できませんでした。", "pen", defTeam);
+        log(`🔁 ${defTeam === "A" ? teamAShort : teamBShort}ボールの5mドロップアウトで再開します。`, "start", defTeam);
+        state.scoringSequence = false;
+        if (state.isTimeOver) { checkTimeOverEnd(true); return; }
+        state.possession = defTeam;
+        state.fieldPos = team === "A" ? 95 : 5;
+        state.fieldY = 50;
+        state.kickoff = false;
+      } else {
+        log("✅ TMO判定：グラウンディングを確認。トライが認められます！", "tmo", team);
+        completeTry(team, carrier, true);
+      }
+    }, 1500);
+  } else {
+    completeTry(team, carrier, false);
+  }
+}
+function completeTry(team, carrier, isTMO, customMsg = null) {
+addTime(90); if(team==="A"){state.scoreA+=5; state.tryA++;}else{state.scoreB+=5; state.tryB++;}
+trackAction(carrier, team, 50); render();
+
+// トライ位置の演出（端なら中央に回り込むこともある）
+let yStr = getYZoneInfo();
+let tryPositionMsg = "";
+if ((state.fieldY <= 20 || state.fieldY >= 80) && Math.random() < 0.4) {
+state.fieldY = state.fieldY <= 20 ? 30 : 70; // 中央に回り込む
+tryPositionMsg = "回り込んでゴール中央付近で";
+} else {
+tryPositionMsg = `${yStr}で`;
+}
+
+if(customMsg) log(`✅ トライ認定！ (+5点) ${customMsg}`, "try", team);
+else if(isTMO) log(`✅ トライ認定！ (+5点) ${tryPositionMsg}グラウンディング成功！ [${getPName(carrier)}]`, "try", team);
+else log(`🏉 トライ！！ (+5点) [${getPName(carrier)}] が${tryPositionMsg}インゴールへ飛び込んだ！`, "try", team);
+executeTrySequence(team);
+}
+
+function executeTrySequence(team) {
+setTimeout(() => {
+const activeRoster = getActiveRoster(team);
+const kicker = activeRoster.find(p => p.isKicker) || activeRoster.find(p => p.title === "プレースキッカー") || activeRoster.find(p => p.pos === "SO") || activeRoster[0];
+
+let yInfo = getYZoneInfo();
+if (state.fieldY <= 20 || state.fieldY >= 80) log(`⚠️ コンバージョンは${yInfo}からの厳しい角度になります。`, "start", team);
+
+const rate = calculateKickSuccess(kicker, team, true);
+if(Math.random() * 100 < rate){
+if(team==="A"){state.scoreA+=2; state.convA++;}else{state.scoreB+=2; state.convB++;}
+trackAction(kicker, team, 10); render(); log(`🔄 コンバージョン成功！ (+2点) [${getPName(kicker)}] が見事に沈める！`, "conv", team);
+} else log("❌ 角度が厳しかったか、コンバージョンならず！", "pen", team);
+render();
+setTimeout(() => {
+state.scoringSequence = false; resetPenalty();
+if (checkTimeOverEnd()) return;
+state.possession = team==="A"?"B":"A"; state.fieldY = 50; state.kickoff = true; // キックオフは中央から
+}, 800);
+}, 1000);
+}
+
+function handlePenalty(attackingTeam, pType, pName) {
+state.penalty = true; state.penaltyTeam = attackingTeam;
+const defTeamName = attackingTeam === "A" ? teamBShort : teamAShort;
+log(`⚠️ 笛です！${defTeamName}、[${pName}] の ${pType}！`, "pen", attackingTeam);
+
+if (state.penaltyTeam === "B") {
+setTimeout(() => {
+const activeRoster = getActiveRoster("B");
+const kicker = activeRoster.find(p => p.isKicker) || activeRoster.find(p => p.title === "プレースキッカー") || activeRoster.find(p => p.pos === "SO") || activeRoster[0];
+const rate = calculateKickSuccess(kicker, "B", false);
+let scoreDiff = state.scoreB - state.scoreA; let mustGoForTry = false; let shouldKickOut = false; const attackPos = 100 - state.fieldPos;
+
+if (state.isTimeOver) {
+if (!state.halfEnded) { if (scoreDiff > 0 && attackPos < 70) shouldKickOut = true; if (scoreDiff <= 0 && attackPos <= 30) shouldKickOut = true; }
+else { if (scoreDiff > 0) shouldKickOut = true; else if (scoreDiff < 0 && scoreDiff >= -3) mustGoForTry = false; else if (scoreDiff <= -4) mustGoForTry = true; }
+} else {
+let remain = 80 - state.minute;
+if (remain <= 15 && scoreDiff < 0) {
+if (remain <= 5) { if (scoreDiff <= -4) mustGoForTry = true; }
+else { if (scoreDiff <= -12) mustGoForTry = true; else if (scoreDiff <= -4 && scoreDiff >= -8) mustGoForTry = true; }
+}
+}
+
+let logicalChoice = "touch"; const attFw = getTeamAvg("B", 'power', true); const defFw = getTeamAvg("A", 'power', true);
+if (attackPos >= 85 && attFw > defFw) logicalChoice = "scrum";
+
+if (shouldKickOut) {
+const endMsg = state.halfEnded ? "ノーサイド！" : "前半終了！";
+log(`🛑 リードを守り切り、安全にボールを外へ蹴り出した！${endMsg}`, "end", "B");
+resetPenalty(); checkTimeOverEnd(true);
+}
+else if (mustGoForTry) {
+if (logicalChoice === "scrum") { log(`🤝 負けられない${teamBShort}、PGは狙わずスクラムを選択！強力なFW勝負！`, "start", "B"); resetPenalty(); awardScrum("B"); }
+else { log(`🦶 負けられない${teamBShort}、PGは狙わずタッチへ蹴り出す！ラインアウト勝負！`, "start", "B"); touchKick("B"); }
+}
+else if (rate >= 60) { log(`🎯 ${teamBShort}、PGを選択。`, "start", "B"); kickPG("B"); }
+else {
+if (logicalChoice === "scrum") { log(`🤝 ${teamBShort}、スクラムを選択！`, "start", "B"); resetPenalty(); awardScrum("B"); }
+else { log(`🦶 ${teamBShort}、タッチへ蹴り出してラインアウト勝負！`, "start", "B"); touchKick("B"); }
+}
+}, 1000);
+} else showUserPenaltyUI(pType);
+}
+
+function touchKick(team) {
+if(team==="A") state.fieldPos += 25; else state.fieldPos -= 25;
+if(state.fieldPos>95) state.fieldPos=95; if(state.fieldPos<5) state.fieldPos=5;
+state.possession = team; resetPenalty(); state.isLineout = true;
+// ⭐ タッチキック後は必ず端（5 or 95）からラインアウト
+state.fieldY = Math.random() < 0.5 ? 5 : 95;
+state.isPenaltyTouchLineout = true; state.phases = 0;
+}
+
+function kickPG(team) {
+state.scoringSequence = true; addTime(90);
+const activeRoster = getActiveRoster(team);
+const kicker = activeRoster.find(p => p.isKicker) || activeRoster.find(p => p.title === "プレースキッカー") || activeRoster.find(p => p.pos === "SO") || activeRoster[0];
+let yInfo = getYZoneInfo();
+if (state.fieldY <= 20 || state.fieldY >= 80) log(`⚠️ ${yInfo}からの厳しい角度のPGになります。`, "start", team);
+
+const rate = calculateKickSuccess(kicker, team, false);
+setTimeout(() => {
+if(Math.random() * 100 < rate){
+if(team==="A"){state.scoreA+=3; state.pgA++;} else {state.scoreB+=3; state.pgB++;}
+trackAction(kicker, team, 15); render();
+log(`🎯 PG成功！ (+3点) 着実に加点。 [${getPName(kicker)}]`, "conv", team);
+} else log("❌ わずかに外れた！", "pen", team);
+render(); state.scoringSequence = false; resetPenalty();
+if (checkTimeOverEnd()) return;
+state.possession = team==="A"?"B":"A"; state.fieldY = 50; state.kickoff = true; // 中央から
+}, 1000);
+}
+
+function handleCollapsing(defTeam, attTeam) {
+const offendingP = getActiveRoster(defTeam).filter(p=>p.isFW)[0] || getRandomPlayer(defTeam);
+state.collapseWarnings[defTeam]++; const count = state.collapseWarnings[defTeam];
+log(`🛑 ピーッ！ディフェンス側が故意にモールを崩した！コラプシング！`, "pen", attTeam);
+const attackPos = attTeam === "A" ? state.fieldPos : 100 - state.fieldPos;
+
+setTimeout(() => {
+if (count === 1) { state.scoringSequence = false; handlePenalty(attTeam, "コラプシング（モール）", offendingP.name); }
+else if (count === 2) {
+log(`⚠️ モールでのコラプシングが続き、チームコーション（警告）！次はカードが出ます。`, "yellow", defTeam);
+setTimeout(() => { state.scoringSequence = false; handlePenalty(attTeam, "コラプシング（モール）", offendingP.name); }, 2000);
+} else {
+log(`🛑 ピーッ！再三のコラプシング！反則の繰り返しでカードが出ます！`, "pen", attTeam);
+setTimeout(() => {
+log(`🟨 [${getPName(offendingP)}] にイエローカード！シンビン！`, "yellow", defTeam);
+state.sinBin.push({ player: offendingP, team: defTeam, remaining: 10 }); state.collapseWarnings[defTeam] = 0;
+if (attackPos >= 85) {
+addTime(90); if(attTeam==="A"){ state.scoreA+=7; state.tryA++; } else { state.scoreB+=7; state.tryB++; }
+state.fieldY = 50; // 中央
+render(); log(`🙌 ゴール前での悪質な反則！認定トライ（ペナルティトライ）！ (+7点)`, "try", attTeam);
+setTimeout(() => {
+state.scoringSequence = false; if (checkTimeOverEnd()) return;
+state.possession = attTeam==="A"?"B":"A"; state.kickoff = true;
+}, 2500);
+} else setTimeout(() => { state.scoringSequence = false; handlePenalty(attTeam, "コラプシング（モール）", offendingP.name); }, 1500);
+}, 2000);
+}
+}, 1500);
+}
+
+function executeKickoff(team, isShort) {
+state.kickoff = false; state.phases = 0; state.isSetPieceChoice = false; state.wasTurnoverOrKickReturn = false;
+const receivingTeam = team === "A" ? "B" : "A";
+if (isShort) {
+log(`🏉 ショートキックオフ！浅く高く蹴り上げ、ボールを競り合う！`, "start", team);
+state.fieldY = Math.random() < 0.5 ? 20 : 80; // ショートは端を狙うことが多い
+if (Math.random() < 0.4) {
+log(`🔥 見事にボールを競り落とした！マイボールキープ！`, "start", team);
+state.possession = team; state.fieldPos = team === "A" ? 60 : 40;
+} else {
+log(`💨 相手がしっかりキャッチ。`, "start", receivingTeam);
+state.possession = receivingTeam; state.fieldPos = receivingTeam === "A" ? 40 : 60;
+}
+} else {
+log(`🏉 キックで再開。陣地奥深くに蹴り込まれます！`, "start", team);
+state.possession = receivingTeam;
+state.fieldPos = team === "A" ? 90 - Math.floor(Math.random() * 15) : 10 + Math.floor(Math.random() * 15);
+state.fieldY = 10 + Math.floor(Math.random() * 80); // ランダムな横位置
+}
+}
+
+function engine() {
+if (state.gameOver || state.penalty || state.scoringSequence || state.isSetPieceChoice) return;
+
+if (state.halfEnded && !state.secondHalfStarted) {
+state.secondHalfStarted = true; state.minute = 40; state.second = 0;
+log("🔄 後半開始！", "start"); state.possession = "B"; state.fieldPos = 50; state.fieldY = 50; state.kickoff = true; return;
+}
+
+if (!state.isTimeOver) addTime(15 + Math.floor(Math.random() * 20));
+
+if (state.kickoff) {
+if (state.possession === "A") { state.isSetPieceChoice = true; el.kickoffUI.style.display = "block"; return; }
+else {
+const kickingTeam = "B"; const scoreDiff = state.scoreB - state.scoreA;
+let isShort = (state.minute >= 65 && scoreDiff < 0); executeKickoff(kickingTeam, isShort); return;
+}
+}
+
+let attackPos = state.possession === "A" ? state.fieldPos : 100-state.fieldPos;
+const teamScoreDiff = state.possession === "A" ? state.scoreA - state.scoreB : state.scoreB - state.scoreA;
+
+if (state.isTimeOver) {
+let shouldKickOut = false;
+if (!state.halfEnded) {
+if (teamScoreDiff > 0 && attackPos < 70) shouldKickOut = true;
+else if (teamScoreDiff <= 0 && attackPos <= 30) shouldKickOut = true;
+} else { if (teamScoreDiff > 0) shouldKickOut = true; }
+if (shouldKickOut) {
+const endMsg = state.halfEnded ? "ノーサイド！" : "前半終了！";
+log(`🛑 リードを守り切り、安全にボールを外へ蹴り出した！${endMsg}`, "end", state.possession);
+resetPenalty(); checkTimeOverEnd(true); return;
+}
+}
+
+if (state.isLineout) {
+state.isLineout = false; state.isPenaltyTouchLineout = false; state.phases = 0;
+const attTeam = state.possession; const defTeam = attTeam === "A" ? "B" : "A";
+const attRoster = attTeam === "A" ? teamA : teamB; const defRoster = defTeam === "A" ? teamA : teamB;
+
+const getP = (r, poss) => {
+const c = r.filter(p => poss.includes(p.pos) && !state.sinBin.some(sb => sb.player.name === p.name));
+return c.length > 0 ? c[Math.floor(Math.random()*c.length)] : getRandomPlayer(r === teamA ? "A" : "B");
+};
+
+const thrower = getP(attRoster, ["HO"]);
+if (Math.random() < 0.05) {
+const stealer = getP(defRoster, ["LO", "FL", "No8"]);
+log(`🖐️ ラインアウト！しかし [${getPName(stealer)}] が空中で競り勝ってスチール！ターンオーバー！`, "start", defTeam);
+trackAction(stealer, defTeam, 20); state.possession = defTeam; state.wasTurnoverOrKickReturn = true; return;
+}
+
+let jumper = getP(attRoster, ["LO", "FL", "No8"]);
+log(`🏉 ラインアウト。[${getPName(thrower)}] のスローインを [${getPName(jumper)}] がクリーンキャッチ！`, "start", attTeam);
+trackAction(jumper, attTeam, 5);
+
+state.currentJumper = jumper; state.isSetPieceChoice = true;
+
+if (attTeam === "A") {
+el.lineoutPos.textContent = `📍 地点: ${state.fieldPos}m (${getZone("A")})`;
+el.lineoutMarker.style.left = state.fieldPos + "%"; el.lineoutMarker.style.top = state.fieldY + "%";
+el.lineoutUI.style.display = "block";
+} else executeLineout(getLogicalLineoutChoice("B"), "B", jumper);
+return;
+}
+
+// ゴール前のアクション
+if (attackPos >= 85 && attackPos < 100) {
+let kickThreshold = (state.phases >= 5) ? 0.15 : 0.02;
+let goalLinePlay = Math.random();
+
+if (goalLinePlay < kickThreshold) {
+state.scoringSequence = true;
+const attTeam = state.possession; const defTeam = attTeam === "A" ? "B" : "A";
+const attBks = getActiveRoster(attTeam).filter(p => !p.isFW);
+const kickers = getActiveRoster(attTeam).filter(p => p.pos === "SO" || p.pos === "SH" || p.pos === "FB");
+const kicker = kickers.length > 0 ? kickers[Math.floor(Math.random()*kickers.length)] : (attBks.length > 0 ? attBks[0] : getRandomPlayer(attTeam));
+const defTeamShort = defTeam === "A" ? teamAShort : teamBShort;
+
+log(`🥾 ゴール前、フェーズを重ねた「ここぞ」のタイミング！[${getPName(kicker)}] がインゴールぎりぎりを狙う絶妙なショートキック！`, "kick", attTeam);
+setTimeout(() => {
+const rand = Math.random();
+if (rand < 0.35) {
+const tryP = attBks.length > 0 ? attBks[Math.floor(Math.random()*attBks.length)] : getRandomPlayer(attTeam);
+completeTry(attTeam, tryP, false, `✨ 味方が反応！インゴールで [${getPName(tryP)}] が拾い上げてそのままトライ！`);
+} else if (rand < 0.70) {
+const defP = getRandomPlayer(defTeam);
+log(`🛡️ ギリギリのキック！しかしディフェンスの [${getPName(defP)}] が間一髪で先にグラウンディング（押さえ込み）！`, "start", defTeam);
+if (state.isTimeOver) { state.scoringSequence = false; checkTimeOverEnd(true); return; }
+setTimeout(() => {
+log(` KickDrop 敵陣を脱出！${defTeamShort}のゴールラインドロップアウトから大きく押し戻して再開！`, "start", defTeam);
+state.possession = attTeam; state.fieldPos = attTeam === "A" ? 45 : 55; state.fieldY = 50;
+state.scoringSequence = false; state.phases = 0; state.wasTurnoverOrKickReturn = true;
+}, 1500);
+} else {
+const defP = getRandomPlayer(defTeam);
+log(`💥 プレッシャーを受けたディフェンスの [${getPName(defP)}] が自陣インゴールへ持ち込んでしまった！キャリーバック！`, "pen", attTeam);
+if (state.isTimeOver) { state.scoringSequence = false; checkTimeOverEnd(true); return; }
+setTimeout(() => {
+const attTeamShort = attTeam === "A" ? teamAShort : teamBShort;
+log(`🤝 ${attTeamShort}ボール、相手ゴール前5mスクラムという大チャンス！`, "start", attTeam);
+state.fieldPos = attTeam === "A" ? 95 : 5; state.scoringSequence = false; awardScrum(attTeam);
+}, 1500);
+}
+}, 1500);
+return;
+}
+else if (goalLinePlay < kickThreshold + 0.25) {
+state.scoringSequence = true;
+const attTeam = state.possession; const defTeam = attTeam === "A" ? "B" : "A";
+log(`🏉 ゴール前、ラック周辺をFW陣が固まってピック＆ドライブ！力強く押し込む！`, "start", attTeam);
+setTimeout(() => {
+if (Math.random() < 0.25) {
+log(`🚫 インゴールへ雪崩れ込むが、ディフェンスが手を入れてグラウンディングさせない！ヘルドアップ！`, "pen", defTeam);
+if (state.isTimeOver) { state.scoringSequence = false; checkTimeOverEnd(true); return; }
+setTimeout(() => {
+const defTeamShort = defTeam === "A" ? teamAShort : teamBShort;
+log(`🦵 ディフェンスが意地を見せた！${defTeamShort}のゴールラインドロップアウトで一気にエリアをリカバリー！`, "start", defTeam);
+state.scoringSequence = false; state.possession = attTeam; state.fieldPos = attTeam === "A" ? 45 : 55; state.fieldY = 50;
+state.phases = 0; state.wasTurnoverOrKickReturn = true;
+}, 2000);
+} else {
+const tryActiveFWs = getActiveRoster(attTeam).filter(p => p.isFW);
+const tryP = tryActiveFWs.length > 0 ? tryActiveFWs[Math.floor(Math.random()*tryActiveFWs.length)] : getRandomPlayer(attTeam);
+
+// ⭐ パワーランナーのゴール前特大突破
+if (getActualVal(tryP, 'power') >= 90 && Math.random() < 0.5) {
+completeTry(attTeam, tryP, false, `🔥 重戦車のような圧倒的パワー！ [${getPName(tryP)}] が複数人のディフェンスを吹き飛ばして豪快なダイブ！！`);
+} else {
+completeTry(attTeam, tryP, false, `💪 FWの肉弾戦から最後は [${getPName(tryP)}] がねじ込んでグラウンディング！`);
+}
+}
+}, 1200);
+return;
+}
+else if (goalLinePlay < kickThreshold + 0.45) {
+state.scoringSequence = true;
+const attTeam = state.possession; const defTeam = attTeam === "A" ? "B" : "A";
+const sos = getActiveRoster(attTeam).filter(p => p.pos === "SO");
+const passer = sos.length > 0 ? sos[0] : getRandomPlayer(attTeam);
+
+let receivers = []; const rNum = Math.random();
+if (rNum < 0.70) receivers = getActiveRoster(attTeam).filter(p => p.pos === "WTB" || p.pos === "FB");
+else if (rNum < 0.90) receivers = getActiveRoster(attTeam).filter(p => p.pos === "CTB");
+else receivers = getActiveRoster(attTeam).filter(p => p.pos === "FL" || p.pos === "No8" || p.pos === "HO");
+
+if (receivers.length === 0) receivers = getActiveRoster(attTeam).filter(p => !p.isFW);
+const receiver = receivers.length > 0 ? receivers[Math.floor(Math.random() * receivers.length)] : getRandomPlayer(attTeam);
+
+const isKickPass = Math.random() < 0.25;
+if (isKickPass) {
+log(`🥾 ゴール前、大外のスペースを見逃さない！ [${getPName(passer)}] からピンポイントのキックパス！`, "kick", attTeam);
+state.fieldY = Math.random() < 0.5 ? 10 : 90; // 端へ振る
+}
+else {
+log(`⚡ ゴール前でバックス展開！サインプレーで崩し、大外のスペースへパスを回し切った！`, "start", attTeam);
+state.fieldY = Math.random() < 0.5 ? 15 : 85; // 端へ振る
+}
+
+setTimeout(() => {
+if (isKickPass) log(`✨ 大外で待ち構えていた [${getPName(receiver)}] が空中で見事にキャッチ！そのままインゴールへ！`, "start", attTeam);
+else {
+// ⭐ スピードスターのステップ突破
+if (getActualVal(receiver, 'speed') >= 90 && Math.random() < 0.4) {
+log(`⚡ [${getPName(receiver)}] の神懸かったステップ！ディフェンスを完全に置き去りにしてコーナーへダイブ！`, "special", attTeam);
+} else {
+log(`🏃💨 大外でボールを受けた [${getPName(receiver)}] がディフェンスを振り切りコーナーへダイブ！`, "start", attTeam);
+}
+}
+
+setTimeout(() => {
+if (Math.random() < 0.45) {
+log("📺 コーナーギリギリの攻防！レフリーがTMO（ビデオ判定）を要求します！", "tmo");
+setTimeout(() => {
+if (Math.random() < 0.55) completeTry(attTeam, receiver, true, `✅ 見事なフィニッシュ！タッチラインを割ることなくグラウンディング！`);
+else {
+const defP = getRandomPlayer(defTeam);
+log(`🚫 TMOの結果、ノートライ！ディフェンスの [${getPName(defP)}] の決死のタックルにより、グラウンディング前にタッチを踏んでいました！`, "pen", defTeam);
+if (state.isTimeOver) { state.scoringSequence = false; checkTimeOverEnd(true); return; }
+setTimeout(() => {
+const defTeamShort = defTeam === "A" ? teamAShort : teamBShort;
+log(`🦵 攻守交代！${defTeamShort}ボールのラインアウト（自陣5m）で再開です。`, "start", defTeam);
+state.scoringSequence = false; state.possession = defTeam; state.fieldPos = defTeam === "A" ? 5 : 95;
+state.fieldY = Math.random() < 0.5 ? 5 : 95; // 端から
+state.isLineout = true; state.phases = 0;
+}, 2500);
+}
+}, 2500);
+} else completeTry(attTeam, receiver, false, `👏 鮮やかな展開からのフィニッシュ！ [${getPName(receiver)}] がインゴールを陥れた！`);
+}, 1500);
+}, 1500);
+return;
+}
+else if (goalLinePlay < kickThreshold + 0.55) {
+state.scoringSequence = true; const attTeam = state.possession; const defTeam = attTeam === "A" ? "B" : "A";
+const defActiveFWs = getActiveRoster(defTeam).filter(p => p.isFW);
+const offendingP = defActiveFWs.length > 0 ? defActiveFWs[Math.floor(Math.random()*defActiveFWs.length)] : getRandomPlayer(defTeam);
+log(`🏉 ゴール前、FWが連続して近場を突く！インゴールは目前！`, "start", attTeam);
+setTimeout(() => {
+log(`🛑 笛！たまらず [${getPName(offendingP)}] が倒れ込んでプレーを妨害。ノットロールアウェイ！`, "pen", attTeam);
+state.scoringSequence = false; handlePenalty(attTeam, "ノットロールアウェイ", offendingP.name);
+}, 1200); return;
+}
+else if (goalLinePlay < kickThreshold + 0.65) {
+state.scoringSequence = true; const attTeam = state.possession; const defTeam = attTeam === "A" ? "B" : "A";
+const defActiveFWs = getActiveRoster(defTeam).filter(p => p.isFW);
+const offendingP = defActiveFWs.length > 0 ? defActiveFWs[Math.floor(Math.random()*defActiveFWs.length)] : getRandomPlayer(defTeam);
+log(`🏉 ゴール前の猛攻！たまらずディフェンスがオフサイドラインを割って決死のタックル！`, "start", attTeam);
+setTimeout(() => {
+log(`🛑 ピーッ！ペナルティ！決定的な得点機会を反則で阻止した！`, "pen", attTeam);
+setTimeout(() => {
+log(`🟨 [${getPName(offendingP)}] にイエローカード！シンビン！`, "yellow", defTeam);
+state.sinBin.push({ player: offendingP, team: defTeam, remaining: 10 }); addTime(90);
+if(attTeam==="A"){ state.scoreA+=7; state.tryA++; } else { state.scoreB+=7; state.tryB++; }
+state.fieldY = 50; // ペナルティトライは中央
+render(); log(`🙌 認定トライ（ペナルティトライ）！ (+7点)`, "try", attTeam);
+setTimeout(() => {
+state.scoringSequence = false; if (checkTimeOverEnd()) return;
+state.possession = attTeam==="A"?"B":"A"; state.kickoff = true;
+}, 1500);
+}, 1200);
+}, 1200); return;
+}
+}
+
+state.phases++; const r = Math.random(); const in22 = attackPos >= 78;
+const penaltyRate = in22 ? 0.06 : ((state.phases >= 5) ? 0.10 : 0.05);
+const knockOnRate = (state.phases === 1) ? 0.0 : (in22 ? 0.04 : 0.05);
+
+if (r < knockOnRate) {
+state.phases = 0; const errorP = getRandomPlayer(state.possession); const winTeam = state.possession === "A" ? "B" : "A";
+const winTeamShort = winTeam === "A" ? teamAShort : teamBShort;
+log(`💥 痛恨のミス！ [${getPName(errorP)}] がボールをこぼした！ノックオン！`, "start", state.possession);
+if (state.isTimeOver) {
+const endMsg = state.halfEnded ? "ノーサイド！" : "前半終了！";
+log(`🛑 ホーンが鳴った後のノックオンによるデッドボール。ここで笛が鳴り響きます！${endMsg}`, "end"); checkTimeOverEnd(true); return;
+}
+log(`🤝 ${winTeamShort}ボールのスクラムとなります。`, "start", winTeam); awardScrum(winTeam); return;
+}
+
+if (r < knockOnRate + penaltyRate) {
+state.phases = 0; const attTeam = state.possession; const defTeam = state.possession === "A" ? "B" : "A";
+if (Math.random() < 0.12) {
+const offender = getRandomPlayer(defTeam);
+const review = Math.random();
+state.scoringSequence = true;
+log(`🛑 レフリーが笛。${getPName(offender)}がパスに手を出したように見えます。デリバレイト・ノックオンの可能性についてTMOで確認します。`, "tmo", defTeam);
+setTimeout(() => {
+  if (review < 0.20) {
+    // インターセプトを試みたが捕球できず、前に落としたケース
+    log(`🎥 TMO確認：${getPName(offender)}はインターセプトを試みましたが、ボールを確保できず前に落としています。故意にプレーを妨害したとは認められません。`, "tmo", defTeam);
+    log(`🤝 判定は通常のノックオン。${attTeam === "A" ? teamAShort : teamBShort}ボールのスクラムで再開します。`, "start", attTeam);
+    state.scoringSequence = false;
+    awardScrum(attTeam);
+    return;
+  }
+  if (review < 0.58) {
+    // 故意性はあるが、イエロー相当の悪質・戦術的な反則ではない
+    log(`🎥 TMO確認：故意にボールをはたいた反則ですが、悪質性や決定的な得点機会を阻止した状況は認められません。イエローカードはなし、ペナルティのみとします。`, "tmo", defTeam);
+    log(`⚠️ ${attTeam === "A" ? teamAShort : teamBShort}のペナルティで再開。`, "pen", attTeam);
+    state.scoringSequence = false;
+    handlePenalty(attTeam, "デリバレイト・ノックオン（カードなし）", offender.name);
+    return;
+  }
+  log(`🎥 TMO確認：故意にボールをはたき、攻撃を不当に妨害したと判定。`, "tmo", defTeam);
+  log(`🟨 [${getPName(offender)}] にイエローカード。デリバレイト・ノックオンです。`, "yellow", defTeam);
+  state.sinBin.push({ player: offender, team: defTeam, remaining: 10 });
+  if (attackPos >= 75 && Math.random() < 0.5) {
+    addTime(90); if(attTeam==="A"){ state.scoreA+=7; state.tryA++; } else { state.scoreB+=7; state.tryB++; }
+    state.fieldY = 50; render(); log(`🙌 TMOの結果、その反則がなければトライになっていたと判定。ペナルティトライ！ (+7点)`, "try", attTeam);
+    setTimeout(() => { state.scoringSequence = false; if (checkTimeOverEnd()) return; state.possession = attTeam==="A"?"B":"A"; state.kickoff = true; }, 2500);
+  } else {
+    log(`⚠️ ペナルティで再開します。`, "pen", attTeam);
+    setTimeout(() => { state.scoringSequence = false; handlePenalty(attTeam, "デリバレイト・ノックオン", offender.name); }, 800);
+  }
+}, 1800); return;
+}
+if (Math.random() < 0.3) handlePenalty(defTeam, "ノットリリースザボール", getRandomPlayer(attTeam).name);
+else handlePenalty(attTeam, ["オフサイド", "ハイタックル", "ノットロールアウェイ", "ホールディング"][Math.floor(Math.random()*4)], getRandomPlayer(defTeam).name);
+return;
+}
+
+let gain = 0, msg = "", isKick = false, isTurnover = false, msgType = "start";
+let carrier; const activeRoster = getActiveRoster(state.possession);
+let shs = activeRoster.filter(p => p.pos === "SH"); let sh = shs.length > 0 ? shs[0] : null;
+
+if (state.phases === 1 && !state.wasLineout) {
+const bks = activeRoster.filter(p => !p.isFW && p.pos !== "SH");
+carrier = bks.length > 0 ? bks[Math.floor(Math.random() * bks.length)] : getRandomPlayer(state.possession);
+} else {
+if (sh && Math.random() < 0.05) carrier = sh;
+else { let nonSH = activeRoster.filter(p => p.pos !== "SH"); carrier = nonSH.length > 0 ? nonSH[Math.floor(Math.random() * nonSH.length)] : getRandomPlayer(state.possession); }
+}
+state.wasLineout = false;
+
+const defTeam = state.possession === "A" ? "B" : "A"; const tackler = getRandomPlayer(defTeam);
+
+// パス・ランのアクション
+if (Math.random() < 0.20) {
+if (Math.random() < 0.03) { // インターセプト
+const defBks = getActiveRoster(defTeam).filter(p => !p.isFW);
+const interceptor = defBks.length > 0 ? defBks[Math.floor(Math.random()*defBks.length)] : getRandomPlayer(defTeam);
+log(`🚨 あっと！パスを完全に読んだ [${getPName(interceptor)}] がインターセプト！！`, "try", defTeam);
+if (Math.random() < 0.4) {
+state.scoringSequence = true;
+setTimeout(() => { completeTry(defTeam, interceptor, false, `🏃💨 そのまま独走し、見事なインターセプトトライ！！`); }, 1200); return;
+} else {
+log(`🏃💨 一気に敵陣深くへ持ち込む！大ピンチ！`, "start", defTeam);
+state.possession = defTeam; state.fieldPos = defTeam === "A" ? 85 : 15; state.wasTurnoverOrKickReturn = true; return;
+}
+}
+else if (Math.random() < 0.20 && !carrier.isFW && carrier.pos !== "SH") { // キックパス
+let isKickPassSituation = false; let kickPasser = null; let sos = activeRoster.filter(p => p.pos === "SO");
+if (sos.length > 0 && Math.random() < 0.8) { kickPasser = sos[0]; isKickPassSituation = true; } else { kickPasser = carrier; isKickPassSituation = true; }
+
+if (isKickPassSituation) {
+let rNum = Math.random(); let receiverPool = [];
+if (rNum < 0.70) receiverPool = activeRoster.filter(p => p.pos === "WTB" || p.pos === "FB");
+else if (rNum < 0.90) receiverPool = activeRoster.filter(p => p.pos === "CTB");
+else receiverPool = activeRoster.filter(p => p.pos === "FL" || p.pos === "No8" || p.pos === "HO");
+if (receiverPool.length === 0) receiverPool = activeRoster.filter(p => p.name !== kickPasser.name);
+let kickReceiver = receiverPool[Math.floor(Math.random() * receiverPool.length)];
+
+msgType = "kick"; state.fieldY = Math.random() < 0.5 ? 10 : 90; // 端へ振る
+if (Math.random() < 0.6) {
+gain = 20 + Math.floor(Math.random() * 15);
+msg = `🥾 [${getPName(kickPasser)}] が大外へ鮮やかなキックパス！ [${getPName(kickReceiver)}] がキャッチして前進！`;
+trackAction(kickPasser, state.possession, 10); trackAction(kickReceiver, state.possession, 10);
+} else {
+msg = `🥾 [${getPName(kickPasser)}] が大外へキックパス！しかしタッチラインを割り、相手ボールのラインアウトへ。`;
+isTurnover = true; state.isLineout = true; state.isPenaltyTouchLineout = false; state.fieldY = state.fieldY < 50 ? 5 : 95;
+}
+carrier = kickReceiver;
+}
+}
+else { // 通常パス
+let passer;
+if (sh && carrier.name !== sh.name && Math.random() < 0.8) passer = sh;
+else do { passer = getRandomPlayer(state.possession); } while (passer.name === carrier.name && activeRoster.length > 1);
+
+gain = Math.floor(getActualVal(carrier, 'speed')/10);
+
+// ⭐ 2対1のシチュエーション
+if (Math.random() < 0.15 && !carrier.isFW) {
+let defResult = Math.random();
+if (defResult < 0.6) {
+msg = `‼️ 大外で2対1のシチュエーション！完全に余っている！ [${getPName(passer)}] が引き付けて冷静にパスを回し、[${getPName(carrier)}] がゲイン！`;
+gain += 15; state.fieldY = state.fieldY < 50 ? 15 : 85; msgType = "special";
+} else {
+const heroTackler = getActiveRoster(defTeam).filter(p=>!p.isFW)[0] || tackler;
+msg = `‼️ 大外で2対1！抜ければ決定機...しかしディフェンスの [${getPName(heroTackler)}] がパスコースを見事に読み切り、渾身のタックルで阻止！！`;
+gain = 0; trackAction(heroTackler, defTeam, 15); msgType = "special";
+}
+} else {
+msg = `🏉 フェーズ${state.phases}: [${getPName(passer)}] から [${getPName(carrier)}] へ鮮やかなパスが繋がる！`;
+state.fieldY += (Math.random() < 0.5 ? -15 : 15); // 少し横へ動く
+}
+trackAction(passer, state.possession, 5); trackAction(carrier, state.possession, 5);
+}
+}
+else { // キック or ラン
+let baseKickRate = 0.22;
+if (attackPos >= 80) baseKickRate = 0.0; else if (attackPos < 22) baseKickRate = 0.65; else if (attackPos < 40) baseKickRate = 0.40;
+let wantToKick = !carrier.isFW && Math.random() < baseKickRate;
+
+if (wantToKick) { // キック処理
+if (Math.random() < 0.75) {
+let kickers = activeRoster.filter(p => p.pos === "SO" || p.pos === "FB" || p.pos === "SH");
+if (kickers.length > 0) carrier = kickers[Math.floor(Math.random() * kickers.length)];
+}
+let kickSkill = getActualVal(carrier, 'kick') || 60; const teamPossShort = state.possession === "A" ? teamAShort : teamBShort;
+
+let try5022 = false; let isGrubber = false; let isLongKick = false; let isHighPunt = false; let isClearance = false;
+if (attackPos >= 22 && attackPos <= 50) {
+let prob5022 = 0.015 + Math.max(0, (kickSkill - 60)) * 0.0015;
+if (state.wasTurnoverOrKickReturn && state.phases <= 2) prob5022 *= 1.5;
+if (Math.random() < prob5022) try5022 = true;
+}
+
+if (!try5022) {
+if (attackPos < 22) isClearance = true;
+else { let kickRand = Math.random(); if (kickRand < 0.40) isLongKick = true; else if (kickRand < 0.70) isHighPunt = true; else isGrubber = true; }
+}
+
+let isDesperate = (teamScoreDiff < 0 && state.minute >= 65);
+if (isDesperate) {
+if (!try5022 && !isGrubber) {
+if (isClearance && state.minute < 75) { if (Math.random() < 0.5) wantToKick = false; } else { wantToKick = false; }
+if (!wantToKick) {
+if (state.minute >= 78) log(`🔥 負けられない${teamPossShort}。蹴らずに自陣からでもボールを回し続けます！`, "start", state.possession);
+else log(`⏱️ 追う展開の${teamPossShort}。相手にボールを渡すリスクを避け、大事にフェーズを重ねます！`, "start", state.possession);
+}
+}
+} else if (state.minute >= 75 && teamScoreDiff > 0 && teamScoreDiff <= 7 && !state.isTimeOver) {
+if (!(state.possession === "A" ? state.fieldPos <= 22 : state.fieldPos >= 78) && Math.random() < 0.85) {
+wantToKick = false; log(`⏱️ 僅差でリードしている${teamPossShort}。蹴らずにボールをキープして時計を進めます！`, "start", state.possession);
+}
+}
+
+if (wantToKick) {
+isKick = true; msgType = "kick"; trackAction(carrier, state.possession, 8);
+
+if (try5022) {
+let targetPos = state.possession === "A" ? (82 + Math.floor(Math.random() * 10)) : (18 - Math.floor(Math.random() * 10));
+gain = Math.abs(targetPos - state.fieldPos);
+msg = `🌟 ビッグプレー！ [${getPName(carrier)}] が空いたスペースへ見事な低弾道キック！バウンドしてタッチを割る！【50:22成立】敵陣深くでマイボールラインアウトの特大チャンス！`;
+trackAction(carrier, state.possession, 25); state.isLineout = true; state.isPenaltyTouchLineout = true; state.fieldY = Math.random() < 0.5 ? 5 : 95;
+}
+else if (isClearance) {
+gain = 35 + Math.floor(Math.random() * 10);
+msg = `🛡️ 自陣深くから [${getPName(carrier)}] が高く距離のあるクリアキック！確実にエリアを押し戻す。`;
+isTurnover = true; state.isLineout = true; state.isPenaltyTouchLineout = false; state.fieldY = Math.random() < 0.5 ? 5 : 95;
+}
+else if (isLongKick) {
+gain = 30 + Math.floor(Math.random() * 15);
+const defTeamRoster = getActiveRoster(defTeam); const catchers = defTeamRoster.filter(p => p.pos === "FB" || p.pos === "WTB");
+const catcher = catchers.length > 0 ? catchers[Math.floor(Math.random()*catchers.length)] : getRandomPlayer(defTeam);
+
+if (Math.random() < 0.5) {
+msg = `🥾 [${getPName(carrier)}] が陣地を回復するロングキック！ボールはダイレクトにならずタッチを割り、相手ボールのラインアウト。`;
+isTurnover = true; state.isLineout = true; state.isPenaltyTouchLineout = false; state.fieldY = Math.random() < 0.5 ? 5 : 95;
+} else {
+msg = `🥾 [${getPName(carrier)}] がロングキックを蹴り込む！しかし深くで相手FB [${getPName(catcher)}] がノーバウンドキャッチ！ここからカウンターへ！`;
+isTurnover = true; state.wasTurnoverOrKickReturn = true; state.fieldY = 50; // 中央付近でキャッチ
+}
+}
+else if (isHighPunt) {
+gain = 15 + Math.floor(Math.random() * 10);
+if (Math.random() < 0.5) { msg = `💣 [${getPName(carrier)}] の高いハイパント！競り合いを制してマイボールキープ！`; }
+else { msg = `💣 [${getPName(carrier)}] のハイパント！しかし相手がしっかりキャッチ、ターンオーバー。`; isTurnover = true; state.wasTurnoverOrKickReturn = true; }
+}
+else if (isGrubber) {
+gain = 15 + Math.floor(Math.random() * 10);
+if (Math.random() < 0.5) msg = `🥾 [${getPName(carrier)}] がディフェンスの裏へ絶妙なグラバーキック！転がるボールを味方が拾い上げてチャンス拡大！`;
+else {
+const defender = getRandomPlayer(defTeam);
+msg = `🥾 [${getPName(carrier)}] が裏へキックを転がす！しかし [${getPName(defender)}] が鋭いセービング！ターンオーバー！`;
+isTurnover = true; state.wasTurnoverOrKickReturn = true; trackAction(defender, defTeam, 10);
+}
+}
+}
+}
+
+if (!wantToKick) { // ラン処理
+let attPower = carrier.isFW ? getActualVal(carrier, 'power') : getActualVal(carrier, 'speed');
+let defPower = getActualVal(tackler, 'defense');
+state.fieldY += (Math.random() < 0.5 ? -10 : 10); // ランで少し横へ
+
+if (Math.random() * defPower > Math.random() * attPower * 1.3) {
+const defResult = Math.random();
+if (defResult < 0.35) {
+gain = -(2 + Math.floor(Math.random() * 4));
+msg = `💥 激しい衝突！ [${getPName(tackler)}] のドミネートタックルが刺さり、逆にゲインラインを割らせない！`; trackAction(tackler, defTeam, 10);
+} else if (defResult < 0.6) {
+gain = 0; msg = `🛑 [${getPName(tackler)}] が鋭いタックル！すかさず起き上がってジャッカル！見事なターンオーバー！`;
+isTurnover = true; state.wasTurnoverOrKickReturn = true; trackAction(tackler, defTeam, 15);
+} else { gain = 0; msg = `🛡️ [${getPName(carrier)}] が突進するも、[${getPName(tackler)}] がしつこく絡んでゲインを許さない！`; trackAction(tackler, defTeam, 5); }
+}
+else {
+// ゲイン成功時
+if (carrier.pos === "SH") {
+gain = 1 + Math.floor(getActualVal(carrier, 'speed')/15); trackAction(carrier, state.possession, 5);
+msg = `🏃💨 フェーズ${state.phases}:ラックサイドの隙を突いて [${getPName(carrier)}] がサイドアタックでゲイン！`;
+}
+else if (carrier.isFW) {
+gain = 1 + Math.floor(getActualVal(carrier, 'power')/20); trackAction(carrier, state.possession, 5);
+// ⭐ パワーランナーの縦突破
+if (getActualVal(carrier, 'power') >= 90 && Math.random() < 0.3) {
+msg = `💥 凄まじいパワー！ [${getPName(carrier)}] がタックラーを次々と弾き飛ばして力強い縦突破！`;
+gain += 5; msgType = "special";
+} else {
+const fwRuns = [`💪 フェーズ${state.phases}: [${getPName(carrier)}] が重戦車のように突き進む！`, `💥 フェーズ${state.phases}: [${getPName(carrier)}] がタックラーを諸共せずにゲイン！`, `🛡️ フェーズ${state.phases}: [${getPName(carrier)}] の泥臭いピック＆ゴー！`];
+msg = fwRuns[Math.floor(Math.random()*fwRuns.length)];
+}
+}
+else {
+gain = 2 + Math.floor(getActualVal(carrier, 'speed')/15); trackAction(carrier, state.possession, 5);
+// ⭐ スピードスターのステップ突破
+if (getActualVal(carrier, 'speed') >= 90 && Math.random() < 0.3) {
+msg = `✨ キレのあるステップ！ [${getPName(carrier)}] がディフェンダーを置き去りにして大きくゲイン！`;
+gain += 10; msgType = "special";
+} else {
+const bkRuns = [`⚡ フェーズ${state.phases}: [${getPName(carrier)}] が華麗なステップでディフェンスを切り裂く！`, `🏃💨 フェーズ${state.phases}: [${getPName(carrier)}] の快足が唸る！一気に前線へ！`, `✨ フェーズ${state.phases}: [${getPName(carrier)}] がギャップを見つけて抜け出した！`];
+msg = bkRuns[Math.floor(Math.random()*bkRuns.length)];
+}
+}
+
+// ⭐ 最後の砦 FBとの1対1 (大きくゲインした時)
+if (gain >= 12 && Math.random() < 0.4) {
+const fb = getActiveRoster(defTeam).find(p=>p.pos==="FB") || getRandomPlayer(defTeam);
+if (Math.random() < 0.6) {
+msg += `<br>🔥 完全に抜けた！最後の砦、相手FB [${getPName(fb)}] との1対1！...見事なステップで振り切った！！`;
+gain += 15; msgType = "special";
+} else {
+msg += `<br>🔥 抜けた！最後の砦、相手FB [${getPName(fb)}] との1対1！...しかし [${getPName(fb)}] が魂のタックルで一歩も引かず仕留める！ビッグプレー！`;
+gain = Math.floor(gain / 2); trackAction(fb, defTeam, 15); msgType = "special";
+}
+}
+}
+}
+}
+
+if (state.possession === "A") state.fieldPos += gain; else state.fieldPos -= gain;
+// Y座標の補正
+if (state.fieldY > 95) state.fieldY = 95; if (state.fieldY < 5) state.fieldY = 5;
+
+let currentAttackPos = state.possession === "A" ? state.fieldPos : 100 - state.fieldPos;
+
+// UI反映（ペナルティ等が無ければここでマーカー等も動かすとスムーズです）
+if (!state.penalty && !state.scoringSequence) {
+// ※簡易的にペナルティマーカーを現在地表示として流用
+el.penMarker.style.left = state.fieldPos + "%";
+el.penMarker.style.top = state.fieldY + "%";
+}
+
+if (currentAttackPos >= 100 && !isKick) { log(msg, msgType, state.possession); tryScore(state.possession); return; }
+else if (currentAttackPos >= 85 && !isKick && gain > 0) { msg = `‼️ [${getPName(carrier)}] がインゴールへ猛突進！トライまであと僅か！`; msgType = "start"; }
+
+log(msg, msgType, state.possession);
+
+if (state.fieldPos > 98 || state.fieldPos < 2) state.fieldPos = state.fieldPos > 98 ? 95 : 5;
+
+if (isTurnover) { state.possession = state.possession === "A" ? "B" : "A"; state.phases = 0; }
+else { state.wasTurnoverOrKickReturn = false; }
+
+if (state.isTimeOver && state.isLineout && !state.isPenaltyTouchLineout) {
+const endMsg = state.halfEnded ? "ノーサイド！" : "前半終了！";
+log(`🛑 ボールが外に出ました（ボールデッド）。ここでホーン後のプレー終了！${endMsg}`, "end"); checkTimeOverEnd(true); return;
+}
+}
+
+function showUserPenaltyUI(pType) {
+const kicker = getActiveRoster("A").find(p => p.isKicker) || getActiveRoster("A").find(p => p.title === "プレースキッカー") || getActiveRoster("A").find(p => p.pos === "SO") || getActiveRoster("A")[0];
+const rate = calculateKickSuccess(kicker, "A", false);
+
+el.penPos.textContent = `📍 地点: ${state.fieldPos}m (${getZone("A")})`; el.penType.textContent = `⚠️ 反則: ${pType}`;
+el.penMarker.style.left = state.fieldPos + "%"; el.penMarker.style.top = state.fieldY + "%";
+
+let yInfo = getYZoneInfo();
+if (rate === 0) { el.kickChance.textContent = "⚠️ 距離が遠すぎるため、PGは狙えません"; el.pgBtn.classList.add("disabled-btn"); el.pgBtn.disabled = true; }
+else {
+let yWarning = (state.fieldY <= 20 || state.fieldY >= 80) ? `（${yInfo}のため難易度高）` : "";
+el.kickChance.textContent = `📊 [${kicker.name}] PG予想成功率: ${rate.toFixed(1)}% ${yWarning}`;
+el.pgBtn.classList.remove("disabled-btn"); el.pgBtn.disabled = false;
+}
+el.tapTouchBtn.style.display = state.isTimeOver ? "block" : "none"; el.penUI.style.display = "block";
+}
+
+el.pauseBtn.onclick = () => {
+if (state.gameOver) return;
+if (state.isPaused) {
+state.isPaused = false; el.pauseBtn.innerHTML = "⏸️ 停止"; el.pauseBtn.style.background = "#fbc02d"; el.pauseBtn.style.color = "#111";
+intervalId = setInterval(engine, parseInt(el.speedSelect.value));
+} else {
+state.isPaused = true; el.pauseBtn.innerHTML = "▶️ 再開"; el.pauseBtn.style.background = "#4caf50"; el.pauseBtn.style.color = "#fff"; clearInterval(intervalId);
+}
+};
+
+el.touchBtn.onclick = () => { log("🦶 タッチキックを選択！ラインアウトから攻める！", "start", "A"); touchKick("A"); };
+el.pgBtn.onclick = () => kickPG("A");
+el.scrumBtn.onclick = () => { log("🤝 スクラムを選択。フロントローがガッチリ組む！", "start", "A"); resetPenalty(); awardScrum("A"); };
+el.tapTouchBtn.onclick = () => { const endMsg = state.halfEnded ? "ノーサイド！" : "前半終了！"; log(`🛑 タップから外へ蹴り出し。${endMsg}`, "end", "A"); resetPenalty(); checkTimeOverEnd(true); };
+
+el.loMaulBtn.onclick = () => { el.lineoutUI.style.display = "none"; executeLineout("maul", "A", state.currentJumper); };
+el.loBkBtn.onclick = () => { el.lineoutUI.style.display = "none"; executeLineout("backs", "A", state.currentJumper); };
+el.scrumPushBtn.onclick = () => { el.scrumUI.style.display = "none"; executeScrum("push", "A"); };
+el.scrumBkBtn.onclick = () => { el.scrumUI.style.display = "none"; executeScrum("backs", "A"); };
+el.scrumEightBtn.onclick = () => { el.scrumUI.style.display = "none"; executeScrum("eight", "A"); };
+
+el.kickLongBtn.onclick = () => { el.kickoffUI.style.display = "none"; executeKickoff("A", false); };
+el.kickShortBtn.onclick = () => { el.kickoffUI.style.display = "none"; executeKickoff("A", true); };
+
+el.restartBtn.onclick = () => { el.gameUI.style.display = "none"; el.setupUI.style.display = "flex"; clearInterval(intervalId); };
+el.speedSelect.onchange = () => { if (!state.isPaused) { clearInterval(intervalId); intervalId = setInterval(engine, parseInt(el.speedSelect.value)); } };
+</script>
+      
+<style id="league-mode-style">
+#leagueModeBtn{margin:10px auto 0;display:block;background:#1565c0;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-weight:bold;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.15)}
+#leaguePanel{display:none;max-width:980px;margin:14px auto;background:#fff;padding:16px;border-radius:16px;box-shadow:0 8px 25px rgba(0,0,0,.1)}
+.league-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.league-head h2{margin:0}.league-actions{display:flex;gap:8px;flex-wrap:wrap}.league-actions button{border:0;border-radius:8px;padding:8px 12px;font-weight:bold;cursor:pointer}.league-primary{background:#1565c0;color:#fff}.league-danger{background:#eee;color:#333}.league-note{font-size:12px;color:#666;margin:8px 0 12px}.league-next{background:#f5f7fa;border-radius:10px;padding:12px;margin-bottom:12px}.league-user{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#e8f1ff;border-radius:10px;padding:10px 12px;margin-bottom:12px}.league-user select{padding:7px;border-radius:7px;border:1px solid #bbb;font-weight:bold}.league-auto{font-size:12px;color:#555}.league-table-wrap{overflow-x:auto}.league-table{width:100%;border-collapse:collapse;font-size:13px}.league-table th,.league-table td{border-bottom:1px solid #ddd;padding:7px 5px;text-align:center;white-space:nowrap}.league-table th{background:#f1f3f5}.league-table td:nth-child(2){text-align:left}.league-round{font-weight:bold;color:#1565c0}.league-results{margin-top:14px;max-height:230px;overflow:auto}.league-results details{margin-bottom:5px}.league-result-row{padding:6px 8px;border-bottom:1px solid #eee;font-size:13px}.league-muted{color:#777}
+</style>
+<div id="leaguePanel">
+  <div class="league-head"><h2>🏆 リーグ戦</h2><div class="league-actions"><button id="leagueNextBtn" class="league-primary">次の節を開始</button><button id="leagueResetBtn" class="league-danger">シーズンをリセット</button></div></div>
+  <div class="league-note">12チーム・22節・ホーム＆アウェー総当たり。あなたのチームの試合だけ実況シミュレーションで進行し、その他の試合は自動シミュレーションします。</div>
+  <div class="league-user"><b>🎮 自分のチーム</b><select id="leagueUserTeam"></select><span class="league-auto">他11チームの試合は自動で結果・勝点を反映</span></div>
+  <div id="leagueNextMatch" class="league-next"></div>
+  <div class="league-table-wrap"><table class="league-table"><thead><tr><th>順位</th><th>チーム</th><th>試</th><th>勝</th><th>分</th><th>負</th><th>勝点</th><th>得点</th><th>失点</th><th>得失</th><th>トライ</th></tr></thead><tbody id="leagueStandingsBody"></tbody></table></div>
+  <div class="league-results"><details open><summary>📋 試合結果</summary><div id="leagueResultsList"></div></details></div>
+  <section id="playoffSection" style="margin-top:16px;padding:14px;border:1px solid #d7e2ef;border-radius:12px;text-align:left">
+    <h3 style="margin:0 0 8px">🏆 プレーオフ</h3>
+    <p class="league-note">リーグ戦終了後、上位6チームで実施します。1回戦は3位対6位、4位対5位。勝者はそれぞれ2位、1位と準決勝を行い、勝者同士で決勝です。</p>
+    <button id="playoffRunBtn" class="league-primary" disabled>プレーオフを開催</button>
+    <div id="playoffResults" style="margin-top:10px"></div>
+  </section>
+  <section id="awardSection" style="margin-top:14px;padding:14px;background:#fff9e8;border-radius:12px;text-align:left">
+    <h3 style="margin:0 0 8px">🥇 シーズン表彰</h3>
+    <div id="seasonAwards">リーグ戦とプレーオフを終えると、優勝チームと最多トライ選手を発表します。</div>
+  </section>
+</div>
+<script id="league-mode-script">
+(function(){
+  const LEAGUE_KEY='rugbyCommentaryAI_league_2026_27_v1';
+  const leagueTeams=['wildknights','spears','sungoliath','steelers','drocks','shizuoka','bravelupus','tochigi','verblitz','dynaboars','eagles','blackrams'];
+  function buildSchedule(){
+    // シーズンごとにチームの配置をシャッフルし、操作チームの対戦相手順も変化させる
+    const arr=leagueTeams.slice();
+    for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+    const fixed=arr.shift(); let rot=arr.slice(); const base=[];
+    for(let r=0;r<11;r++){
+      const list=[fixed].concat(rot); const games=[];
+      for(let i=0;i<6;i++){
+        let home=list[i],away=list[list.length-1-i];
+        if(r%2===1){const t=home;home=away;away=t;}
+        games.push({home,away});
+      }
+      // 各節の対戦カードの並びも毎シーズン変える
+      for(let i=games.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[games[i],games[j]]=[games[j],games[i]];}
+      base.push(games); rot=[rot[rot.length-1]].concat(rot.slice(0,-1));
+    }
+    // 前半戦の節順もシャッフル。後半戦は同じ対戦順でホーム・アウェイを入れ替える
+    for(let i=base.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[base[i],base[j]]=[base[j],base[i]];}
+    const first=base.map((g,i)=>g.map(m=>({...m,round:i+1})));
+    const second=first.map((g,i)=>g.map(m=>({round:i+12,home:m.away,away:m.home})));
+    return first.concat(second);
+  }
+  function fresh(){return {results:[],schedule:buildSchedule(),startedAt:new Date().toISOString()};}
+  function load(){try{const x=JSON.parse(localStorage.getItem(LEAGUE_KEY));if(x&&Array.isArray(x.results)){if(!Array.isArray(x.schedule)||x.schedule.length!==22)x.schedule=buildSchedule();return x;}return fresh();}catch(e){return fresh();}}
+  let league=load();
+  if(league.playoffs&&league.playoffs.complete&&(!Array.isArray(league.playoffs.seeds)||league.playoffs.seeds.length!==6)){delete league.playoffs;}
+  const schedule=league.schedule,allMatches=schedule.flat();
+  function save(){try{localStorage.setItem(LEAGUE_KEY,JSON.stringify(league));}catch(e){console.warn('保存領域を利用できないため、この画面内でのみ進行します。',e);}}
+  function teamName(k){return (typeof teamTemplates!=='undefined'&&teamTemplates[k])?teamTemplates[k].name:k;}
+  function shortName(k){return (typeof teamTemplates!=='undefined'&&teamTemplates[k])?teamTemplates[k].shortName:teamName(k);}
+  function completedSet(){return new Set(league.results.map(r=>r.matchId));}
+  function currentUser(){return document.getElementById('leagueUserTeam').value || el.myTeamSelect.value;}
+  function resultId(m){return m.round+'-'+m.home+'-'+m.away;}
+  function getRound(round){return schedule[round-1]||[];}
+  function firstUnplayedRound(){for(let r=1;r<=22;r++){if(getRound(r).some(m=>!completedSet().has(resultId(m))))return r;}return null;}
+  function userMatchForRound(round){const u=currentUser();return getRound(round).find(m=>m.home===u||m.away===u&&!completedSet().has(resultId(m)))||getRound(round).find(m=>m.home===u||m.away===u)||null;}
+  function avgRoster(key,field){const rs=(teamTemplates[key]&&teamTemplates[key].roster)||[];if(!rs.length)return 70;return rs.reduce((s,p)=>s+Number(p[field]||0),0)/rs.length;}
+  function strength(key){return avgRoster(key,'power')*.32+avgRoster(key,'defense')*.28+avgRoster(key,'speed')*.20+avgRoster(key,'kick')*.20;}
+  function randn(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+  function boundedInt(v,min,max){return Math.max(min,Math.min(max,Math.round(v)));}
+  function autoScore(home,away){
+    const sh=strength(home),sa=strength(away),dh=avgRoster(home,'defense'),da=avgRoster(away,'defense');
+    const diff=sh-sa, homeAdv=2.2;
+    // Team quality influences territory/try chances, while match-day variance remains substantial.
+    const hMean=Math.max(0.65,Math.min(5.4,2.35+(diff+homeAdv)*0.095+(70-da)*0.025));
+    const aMean=Math.max(0.55,Math.min(5.1,2.25+(-diff)*0.095+(70-dh)*0.025));
+    function sampleTries(mean){
+      // Poisson-style try generation: the expected number responds to team strength,
+      // but each match can still produce a shutout, a tight contest, or a high-scoring game.
+      const L=Math.exp(-mean);let p=1,k=0;
+      do{k++;p*=Math.random();}while(p>L&&k<12);
+      let tries=k-1;
+      if(Math.random()<0.035)tries+=2+Math.floor(Math.random()*2); // occasional runaway attack
+      return boundedInt(tries,0,9);
+    }
+    const hTry=sampleTries(hMean);
+    const aTry=sampleTries(aMean);
+    const hk=Math.max(35,Math.min(90,avgRoster(home,'kick'))),ak=Math.max(35,Math.min(90,avgRoster(away,'kick')));
+    const hConv=boundedInt(hTry*(hk/100)+(randn()*.65),0,hTry);
+    const aConv=boundedInt(aTry*(ak/100)+(randn()*.65),0,aTry);
+    // Penalty goals are uncommon but can decide low-scoring or close matches.
+    const hPg=Math.random()<(0.20+Math.max(0,diff)/180)?Math.floor(Math.random()*3):0;
+    const aPg=Math.random()<(0.20+Math.max(0,-diff)/180)?Math.floor(Math.random()*3):0;
+    let hs=hTry*5+hConv*2+hPg*3,as=aTry*5+aConv*2+aPg*3;
+    return {homeScore:hs,awayScore:as,homeTries:hTry,awayTries:aTry};
+  }
+  function pickTryScorers(team,count){
+    const roster=(teamTemplates[team]&&teamTemplates[team].roster)||[];
+    if(!roster.length)return [];
+    const weights=roster.map(p=>Math.max(1,(Number(p.speed)||65)*0.65+(p.isFW?22:42)+(p.pos==='WTB'||p.pos==='FB'?18:0)));
+    const total=weights.reduce((a,b)=>a+b,0),out=[];
+    for(let i=0;i<count;i++){let n=Math.random()*total,idx=0;while(idx<weights.length-1&&n>weights[idx]){n-=weights[idx];idx++;}out.push(roster[idx].name);}
+    return out;
+  }
+  function allTryScorers(){
+    const tally={};
+    const games=[...(league.results||[]),...((league.playoffs&&league.playoffs.matches)||[])];
+    games.forEach(g=>{(g.homeTryScorers||[]).concat(g.awayTryScorers||[]).forEach(n=>tally[n]=(tally[n]||0)+1);});
+    return tally;
+  }
+  function standingsOrder(){const d=stats();return leagueTeams.slice().sort((a,b)=>d[b].points-d[a].points||d[b].wins-d[a].wins||d[b].diff-d[a].diff||d[b].tries-d[a].tries||teamName(a).localeCompare(teamName(b),'ja'));}
+  function runPlayoffs(){
+    if(firstUnplayedRound())return;
+    if(league.playoffs&&league.playoffs.complete)return;
+    const seeds=standingsOrder().slice(0,6),matches=[];
+    function game(round,home,away){let s=autoScore(home,away);if(s.homeScore===s.awayScore){if(Math.random()<0.5)s.homeScore+=3;else s.awayScore+=3;}
+      const winner=s.homeScore>s.awayScore?home:away;
+      const g={round,home,away,...s,winner,homeTryScorers:pickTryScorers(home,s.homeTries),awayTryScorers:pickTryScorers(away,s.awayTries)};matches.push(g);return winner;}
+    const winner36=game('プレーオフ1回戦（3位対6位）',seeds[2],seeds[5]);
+    const winner45=game('プレーオフ1回戦（4位対5位）',seeds[3],seeds[4]);
+    const finalistA=game('準決勝（2位対3位・6位側）',seeds[1],winner36);
+    const finalistB=game('準決勝（1位対4位・5位側）',seeds[0],winner45);
+    const champion=game('決勝',finalistA,finalistB);
+    league.playoffs={seeds,matches,champion,complete:true,format:'six-team-v1'};save();render();
+  }
+  function renderPostseason(){
+    const btn=document.getElementById('playoffRunBtn'),out=document.getElementById('playoffResults'),aw=document.getElementById('seasonAwards');
+    if(!btn||!out||!aw)return;
+    const ready=!firstUnplayedRound();btn.disabled=!ready||!!(league.playoffs&&league.playoffs.complete);
+    if(league.playoffs&&league.playoffs.complete){
+      out.innerHTML=league.playoffs.matches.map(g=>`<div class="league-result-row"><b>${g.round}</b>　${shortName(g.home)} ${g.homeScore}-${g.awayScore} ${shortName(g.away)}　<span class="league-muted">勝者：${shortName(g.winner)}</span></div>`).join('');
+      const tally=allTryScorers(),sorted=Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+      const max=sorted.length?sorted[0][1]:0,leaders=sorted.filter(x=>x[1]===max);
+      aw.innerHTML=`<p><b>🏆 優勝：</b>${teamName(league.playoffs.champion)}</p><p><b>🏉 最多トライ賞：</b>${max?leaders.map(x=>`${x[0]}（${x[1]}トライ）`).join('、'):'該当データなし'}${leaders.length>1?'（同数受賞）':''}</p><small style="color:#666">※選手別トライ数は、試合ログから個人名を厳密に集計するのではなく、チームのトライ数を能力・ポジションに応じて割り当てたシミュレーション値です。</small>`;
+    } else {
+      out.innerHTML=ready?'<span class="league-muted">リーグ戦終了。上位6チームによるプレーオフを開催できます。</span>':'<span class="league-muted">リーグ戦22節を終えると開催できます。</span>';
+      aw.textContent='リーグ戦とプレーオフを終えると、優勝チームと最多トライ選手を発表します。';
+    }
+  }
+  function record(m,s){
+    const id=resultId(m);if(league.results.some(r=>r.matchId===id))return;
+    league.results.push({matchId:id,round:m.round,home:m.home,away:m.away,homeScore:s.homeScore,awayScore:s.awayScore,homeTries:s.homeTries,awayTries:s.awayTries,homeTryScorers:pickTryScorers(m.home,s.homeTries),awayTryScorers:pickTryScorers(m.away,s.awayTries),auto:!!s.auto,playedAt:new Date().toISOString()});save();
+  }
+  function autoSimRound(round,excludeId){
+    getRound(round).forEach(m=>{const id=resultId(m);if(id===excludeId||completedSet().has(id))return;const s=autoScore(m.home,m.away);s.auto=true;record(m,s);});
+  }
+  function stats(){
+    const d={};leagueTeams.forEach(k=>d[k]={played:0,wins:0,draws:0,losses:0,points:0,for:0,against:0,diff:0,tries:0});
+    league.results.forEach(r=>{const a=d[r.home],b=d[r.away];if(!a||!b)return;a.played++;b.played++;a.for+=r.homeScore;b.for+=r.awayScore;a.against+=r.awayScore;b.against+=r.homeScore;a.tries+=r.homeTries;b.tries+=r.awayTries;
+      if(r.homeScore>r.awayScore){a.wins++;b.losses++;a.points+=4+(r.homeTries>=4?1:0);if(r.homeScore-r.awayScore<=7)b.points+=1;}
+      else if(r.homeScore<r.awayScore){b.wins++;a.losses++;b.points+=4+(r.awayTries>=4?1:0);if(r.awayScore-r.homeScore<=7)a.points+=1;}
+      else{a.draws++;b.draws++;a.points+=2;b.points+=2;}
+    });
+    Object.values(d).forEach(x=>x.diff=x.for-x.against);return d;
+  }
+  function render(){
+    const body=document.getElementById('leagueStandingsBody');if(!body)return;const d=stats();
+    const rows=leagueTeams.slice().sort((a,b)=>d[b].points-d[a].points||d[b].wins-d[a].wins||d[b].diff-d[a].diff||d[b].tries-d[a].tries||teamName(a).localeCompare(teamName(b),'ja'));
+    body.innerHTML=rows.map((k,i)=>{const x=d[k];return `<tr><td>${i+1}</td><td>${teamName(k)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.draws}</td><td>${x.losses}</td><td><b>${x.points}</b></td><td>${x.for}</td><td>${x.against}</td><td>${x.diff>0?'+':''}${x.diff}</td><td>${x.tries}</td></tr>`}).join('');
+    const round=firstUnplayedRound(),u=currentUser(),um=round?getRound(round).find(m=>m.home===u||m.away===u):null,next=document.getElementById('leagueNextMatch');
+    if(!round)next.innerHTML='<b>🎉 リーグ戦全132試合終了！</b>';
+    else if(um)next.innerHTML=`<span class="league-round">第${round}節</span>　あなた：<b>${shortName(u)}</b>　vs　<b>${shortName(um.home===u?um.away:um.home)}</b><br><span class="league-muted">この節の他5試合は自動シミュレーションされます。消化 ${league.results.length}/132</span>`;
+    else next.innerHTML=`<span class="league-round">第${round}節</span>　この節の試合を自動シミュレーションします。`;
+    const list=document.getElementById('leagueResultsList');list.innerHTML=league.results.slice().reverse().map(r=>`<div class="league-result-row">第${r.round}節　${teamName(r.home)} <b>${r.homeScore}-${r.awayScore}</b> ${teamName(r.away)}${r.auto?' <span class="league-muted">（自動）</span>':' <b>（自分）</b>'}</div>`).join('')||'<div class="league-muted">まだ試合結果はありません。</div>';
+    renderPostseason();
+  }
+  function recordCurrent(){
+    if(!window.__leagueActive)return;const m=window.__leagueActive,sa=state.scoreA,sb=state.scoreB;
+    record(m,m.userSide==='home'?{homeScore:sa,awayScore:sb,homeTries:state.tryA,awayTries:state.tryB}:{homeScore:sb,awayScore:sa,homeTries:state.tryB,awayTries:state.tryA});
+    window.__leagueActive=null;render();
+  }
+  const setup=document.getElementById('setupUI');
+  if(setup){const box=document.createElement('div');box.innerHTML='<button id="leagueModeBtn">🏆 リーグ戦モード</button>';setup.querySelector('.setup-box').appendChild(box.firstChild);setup.insertAdjacentElement('afterend',document.getElementById('leaguePanel'));}
+  const userSel=document.getElementById('leagueUserTeam');leagueTeams.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=teamName(k);userSel.appendChild(o);});userSel.value=el.myTeamSelect.value;
+  userSel.onchange=()=>{el.myTeamSelect.value=userSel.value;render();};
+  document.getElementById('leagueModeBtn').onclick=()=>{userSel.value=el.myTeamSelect.value;document.getElementById('leaguePanel').style.display='block';render();window.scrollTo({top:document.getElementById('leaguePanel').offsetTop-10,behavior:'smooth'});};
+  document.getElementById('leagueNextBtn').onclick=()=>{
+    if(window.__leagueActive){alert('現在、あなたの試合をシミュレーション中です。試合終了後に次の節へ進めます。');return;}
+    const round=firstUnplayedRound();if(!round){alert('リーグ戦は全試合終了しています。');return;}
+    const u=currentUser();const um=getRound(round).find(m=>m.home===u||m.away===u);
+    if(!um){autoSimRound(round,null);render();return;}
+    autoSimRound(round,resultId(um));
+    const opponent=um.home===u?um.away:um.home;
+    window.__leagueActive={round:um.round,home:um.home,away:um.away,userSide:um.home===u?'home':'away'};
+    el.myTeamSelect.value=u;el.opTeamSelect.value=opponent;document.getElementById('leaguePanel').style.display='none';el.startMatchBtn.click();
+  };
+  document.getElementById('playoffRunBtn').onclick=()=>{if(!firstUnplayedRound()&&confirm('リーグ上位6チームで1回戦・準決勝・決勝を自動シミュレーションしますか？'))runPlayoffs();};
+  document.getElementById('leagueResetBtn').onclick=()=>{if(confirm('リーグ戦・プレーオフの全結果を削除して、第1節からやり直しますか？')){league=fresh();window.__leagueActive=null;save();render();}};
+  const originalCheck=window.checkTimeOverEnd;
+  window.checkTimeOverEnd=function(force){const before=state.gameOver;const ret=originalCheck.apply(this,arguments);if(!before&&state.gameOver)recordCurrent();return ret;};
+  render();
+})();
+</script>
+
+</body>
+    </html>
