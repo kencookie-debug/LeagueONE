@@ -20,12 +20,9 @@ jobs:
 
       - name: Unzip source
         run: |
-          unzip source.zip -d extracted
-          ls -la extracted
-
-      - name: Unzip source
-        run: |
-          unzip source.zip -d extracted
+          rm -rf extracted
+          mkdir -p extracted
+          unzip -o source.zip -d extracted
           ls -la extracted
 
       - name: Build debug APK
