@@ -23,9 +23,14 @@ jobs:
           unzip source.zip -d extracted
           ls -la extracted
 
+      - name: Unzip source
+        run: |
+          unzip source.zip -d extracted
+          ls -la extracted
+
       - name: Build debug APK
         run: |
-          cd extracted/source
+          cd extracted
           chmod +x gradlew
           ./gradlew assembleDebug
 
@@ -33,4 +38,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LeagueONE-debug
-          path: extracted/source/app/build/outputs/apk/debug/*.apk
+          path: extracted/app/build/outputs/apk/debug/*.apk
